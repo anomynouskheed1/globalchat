@@ -16,7 +16,9 @@ var templates *template.Template
 func init() {
 
 	// Load environment variables
-	err := godotenv.Load()
+	err := if os.Getenv("GO_ENV") != "production" {
+    godotenv.Load()
+}()
 
 	if err != nil {
 		log.Fatal("Error loading .env file")
