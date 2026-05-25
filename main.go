@@ -4,7 +4,6 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"path/filepath"
 
 	"github.com/joho/godotenv"
 
