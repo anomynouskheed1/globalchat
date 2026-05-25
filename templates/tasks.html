@@ -1,0 +1,285 @@
+{{template "head" .}}
+{{template "nav" .}}
+
+<section class="tasks-section">
+  <div class="tasks-container">
+    <div class="tasks-header reveal">
+      <div>
+        <h2>Task Marketplace</h2>
+        <p>Real tasks, real pay. All rewards shown upfront before you start.</p>
+      </div>
+      <div class="tasks-meta">
+        <span class="live-badge">🔴 Live</span>
+        <span class="tasks-count">127 tasks available</span>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="task-filters reveal">
+      <div class="filter-group">
+        <button class="filter-pill active" onclick="filterTasks('all', this)">All Tasks</button>
+        <button class="filter-pill" onclick="filterTasks('writing', this)">Writing</button>
+        <button class="filter-pill" onclick="filterTasks('data', this)">Data Entry</button>
+        <button class="filter-pill" onclick="filterTasks('translation', this)">Translation</button>
+        <button class="filter-pill" onclick="filterTasks('review', this)">Reviews</button>
+        <button class="filter-pill" onclick="filterTasks('survey', this)">Surveys</button>
+        <button class="filter-pill" onclick="filterTasks('premium', this)">Premium 🔒</button>
+      </div>
+      <div class="filter-sort">
+        <select onchange="sortTasks(this.value)">
+          <option value="newest">Newest First</option>
+          <option value="highest">Highest Pay</option>
+          <option value="shortest">Shortest Time</option>
+          <option value="popular">Most Popular</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Task Grid -->
+    <div class="task-grid" id="taskGrid">
+
+      <!-- WRITING TASKS -->
+      <div class="task-card glass reveal" data-type="writing">
+        <div class="tc-header">
+          <span class="tc-cat writing">✍️ Writing</span>
+          <span class="tc-badge hot">🔥 Hot</span>
+        </div>
+        <h3>Write a 150-word Product Description</h3>
+        <p>Write a short, engaging description for a household product. Template provided. No experience needed.</p>
+        <div class="tc-meta">
+          <span>⏱ ~10 min</span>
+          <span>📝 150 words</span>
+          <span>👥 3,421 done</span>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-pay">KES 120</span>
+          <button class="btn-primary btn-sm" onclick="location.href='/survey'">Start Task</button>
+        </div>
+      </div>
+
+      <div class="task-card glass reveal" data-type="writing">
+        <div class="tc-header">
+          <span class="tc-cat writing">✍️ Writing</span>
+          <span class="tc-badge new">New</span>
+        </div>
+        <h3>Write 3 Social Media Captions</h3>
+        <p>Create 3 short Instagram/Facebook captions for a food brand. Fun and creative task.</p>
+        <div class="tc-meta">
+          <span>⏱ ~15 min</span>
+          <span>📝 3 captions</span>
+          <span>👥 1,200 done</span>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-pay">KES 180</span>
+          <button class="btn-primary btn-sm" onclick="location.href='/survey'">Start Task</button>
+        </div>
+      </div>
+
+      <!-- DATA ENTRY TASKS -->
+      <div class="task-card glass reveal" data-type="data">
+        <div class="tc-header">
+          <span class="tc-cat data-cat">📊 Data Entry</span>
+          <span class="tc-badge hot">🔥 Hot</span>
+        </div>
+        <h3>Enter Business Names from Images</h3>
+        <p>Type business names and addresses from 20 scanned images into a form. Clear images provided.</p>
+        <div class="tc-meta">
+          <span>⏱ ~20 min</span>
+          <span>📋 20 entries</span>
+          <span>👥 5,800 done</span>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-pay">KES 200</span>
+          <button class="btn-primary btn-sm" onclick="location.href='/survey'">Start Task</button>
+        </div>
+      </div>
+
+      <div class="task-card glass reveal" data-type="data">
+        <div class="tc-header">
+          <span class="tc-cat data-cat">📊 Data Entry</span>
+        </div>
+        <h3>Categorise 30 Product Listings</h3>
+        <p>Look at product names and assign each one to the correct category from a list. Simple and fast.</p>
+        <div class="tc-meta">
+          <span>⏱ ~15 min</span>
+          <span>📋 30 items</span>
+          <span>👥 2,100 done</span>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-pay">KES 150</span>
+          <button class="btn-primary btn-sm" onclick="location.href='/survey'">Start Task</button>
+        </div>
+      </div>
+
+      <!-- TRANSLATION TASKS -->
+      <div class="task-card glass reveal" data-type="translation">
+        <div class="tc-header">
+          <span class="tc-cat translation-cat">🌐 Translation</span>
+          <span class="tc-badge new">New</span>
+        </div>
+        <h3>Translate 10 Short Sentences (English → Swahili)</h3>
+        <p>Translate 10 simple everyday sentences from English to Swahili. Native speakers preferred.</p>
+        <div class="tc-meta">
+          <span>⏱ ~15 min</span>
+          <span>📝 10 sentences</span>
+          <span>👥 890 done</span>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-pay">KES 250</span>
+          <button class="btn-primary btn-sm" onclick="location.href='/survey'">Start Task</button>
+        </div>
+      </div>
+
+      <div class="task-card glass reveal" data-type="translation">
+        <div class="tc-header">
+          <span class="tc-cat translation-cat">🌐 Translation</span>
+        </div>
+        <h3>Translate App Menu (English → Yoruba)</h3>
+        <p>Translate 15 short app menu labels from English to Yoruba. Native speakers only.</p>
+        <div class="tc-meta">
+          <span>⏱ ~20 min</span>
+          <span>📝 15 labels</span>
+          <span>👥 340 done</span>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-pay">KES 300</span>
+          <button class="btn-primary btn-sm" onclick="location.href='/survey'">Start Task</button>
+        </div>
+      </div>
+
+      <!-- REVIEW TASKS -->
+      <div class="task-card glass reveal" data-type="review">
+        <div class="tc-header">
+          <span class="tc-cat review">⭐ Review</span>
+          <span class="tc-badge hot">🔥 Hot</span>
+        </div>
+        <h3>Test & Review a Mobile App</h3>
+        <p>Download a free app, use it for 5 minutes, then answer 8 questions about your experience.</p>
+        <div class="tc-meta">
+          <span>⏱ ~15 min</span>
+          <span>❓ 8 questions</span>
+          <span>👥 4,200 done</span>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-pay">KES 200</span>
+          <button class="btn-primary btn-sm" onclick="location.href='/survey'">Start Task</button>
+        </div>
+      </div>
+
+      <div class="task-card glass reveal" data-type="review">
+        <div class="tc-header">
+          <span class="tc-cat review">⭐ Review</span>
+        </div>
+        <h3>Rate 15 Website Designs</h3>
+        <p>Look at 15 website screenshots and rate each one on clarity, design, and trustworthiness.</p>
+        <div class="tc-meta">
+          <span>⏱ ~10 min</span>
+          <span>🖼️ 15 images</span>
+          <span>👥 1,780 done</span>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-pay">KES 130</span>
+          <button class="btn-primary btn-sm" onclick="location.href='/survey'">Start Task</button>
+        </div>
+      </div>
+
+      <!-- SURVEY TASKS -->
+      <div class="task-card glass reveal" data-type="survey">
+        <div class="tc-header">
+          <span class="tc-cat survey">📋 Survey</span>
+          <span class="tc-badge new">New</span>
+        </div>
+        <h3>Consumer Shopping Habits 2026</h3>
+        <p>Share your online shopping preferences, frequency, and brand loyalty patterns.</p>
+        <div class="tc-meta">
+          <span>⏱ ~5 min</span>
+          <span>❓ 8 questions</span>
+          <span>👥 2,341 done</span>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-pay">KES 150</span>
+          <button class="btn-primary btn-sm" onclick="location.href='/survey'">Start Task</button>
+        </div>
+      </div>
+
+      <div class="task-card glass reveal" data-type="survey">
+        <div class="tc-header">
+          <span class="tc-cat survey">📋 Survey</span>
+        </div>
+        <h3>Daily Transport & Commute Habits</h3>
+        <p>Tell us how you get around your city. Matatu, boda, car, or walking? Quick 6-question survey.</p>
+        <div class="tc-meta">
+          <span>⏱ ~4 min</span>
+          <span>❓ 6 questions</span>
+          <span>👥 3,100 done</span>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-pay">KES 80</span>
+          <button class="btn-primary btn-sm" onclick="location.href='/screening'">Start Task</button>
+        </div>
+      </div>
+
+      <!-- IMAGE TAGGING -->
+      <div class="task-card glass reveal" data-type="data">
+        <div class="tc-header">
+          <span class="tc-cat data-cat">📊 Data Entry</span>
+          <span class="tc-badge new">New</span>
+        </div>
+        <h3>Label Objects in 25 Photos</h3>
+        <p>Look at photos and click on objects like "car", "tree", "person". Used to train AI models.</p>
+        <div class="tc-meta">
+          <span>⏱ ~12 min</span>
+          <span>🖼️ 25 photos</span>
+          <span>👥 6,700 done</span>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-pay">KES 160</span>
+          <button class="btn-primary btn-sm" onclick="location.href='/survey'">Start Task</button>
+        </div>
+      </div>
+
+      <!-- PREMIUM TASKS -->
+      <div class="task-card glass reveal premium-card" data-type="premium">
+        <div class="tc-header">
+          <span class="tc-cat premium-cat">Premium 🔒</span>
+          <span class="tc-badge gold-badge">Top Pay</span>
+        </div>
+        <h3>Write a 500-word Blog Post</h3>
+        <p>Write a well-structured blog post on a given topic. Guidelines and outline provided. Premium members only.</p>
+        <div class="tc-meta">
+          <span>⏱ ~40 min</span>
+          <span>📝 500 words</span>
+          <span>👥 210 done</span>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-pay gold">KES 500</span>
+          <button class="btn-gold btn-sm" onclick="location.href='/membership'">Unlock Premium</button>
+        </div>
+      </div>
+
+      <div class="task-card glass reveal premium-card" data-type="premium">
+        <div class="tc-header">
+          <span class="tc-cat premium-cat">Premium 🔒</span>
+        </div>
+        <h3>Transcribe a 3-minute Audio Clip</h3>
+        <p>Listen to a short audio recording and type out exactly what is said. Clear audio, no jargon.</p>
+        <div class="tc-meta">
+          <span>⏱ ~25 min</span>
+          <span>🎧 3 min audio</span>
+          <span>👥 145 done</span>
+        </div>
+        <div class="tc-footer">
+          <span class="tc-pay gold">KES 450</span>
+          <button class="btn-gold btn-sm" onclick="location.href='/membership'">Unlock Premium</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="load-more reveal">
+      <button class="btn-outline btn-lg" onclick="showNotification('✅ Loading more tasks...')">Load More Tasks</button>
+    </div>
+  </div>
+</section>
+
+{{template "footer" .}}

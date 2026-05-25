@@ -1,0 +1,418 @@
+{{template "head" .}}
+{{template "nav" .}}
+
+<section class="membership-section">
+  <div class="section-container">
+
+    <div class="section-header reveal">
+      <span class="section-tag">Membership</span>
+      <h2>Choose your plan</h2>
+      <p>All fees are transparent. No hidden charges. Cancel anytime.</p>
+    </div>
+
+    <div class="pricing-grid">
+
+      <!-- FREE PLAN -->
+      <div class="pricing-card glass reveal">
+        <div class="plan-badge">Free</div>
+
+        <div class="plan-price">
+          KES 0<span>/month</span>
+        </div>
+
+        <p class="plan-desc">
+          Perfect for getting started
+        </p>
+
+        <ul class="plan-features">
+          <li>✅ Up to 5 tasks/day</li>
+          <li>✅ Community chat access</li>
+          <li>✅ M-Pesa withdrawals</li>
+          <li>✅ Basic reward tasks</li>
+          <li>❌ Priority task queue</li>
+          <li>❌ Higher-paying tasks</li>
+          <li>❌ Priority support</li>
+        </ul>
+
+        <button class="btn-outline btn-full" onclick="location.href='/register'">
+          Get Started Free
+        </button>
+      </div>
+
+      <!-- PREMIUM PLAN -->
+      <div class="pricing-card glass reveal featured">
+
+        <div class="plan-badge popular">
+          Most Popular
+        </div>
+
+        <div class="plan-price">
+          KES 99<span>/month</span>
+        </div>
+
+        <div class="plan-usd">
+          ≈ USD 0.77/month
+        </div>
+
+        <p class="plan-desc">
+          For serious earners
+        </p>
+
+        <ul class="plan-features">
+          <li>✅ Unlimited tasks/day</li>
+          <li>✅ Community chat access</li>
+          <li>✅ M-Pesa & card withdrawals</li>
+          <li>✅ All reward tasks</li>
+          <li>✅ Priority task queue</li>
+          <li>✅ Higher-paying tasks</li>
+          <li>✅ Priority support</li>
+        </ul>
+
+        <button class="btn-primary btn-full" onclick="openPaymentModal(99, 'Premium Membership')">
+          Upgrade — KES 99
+        </button>
+
+        <p class="plan-note">
+          🔒 Secure payment · Cancel anytime
+        </p>
+
+      </div>
+
+      <!-- PRO PLAN -->
+      <div class="pricing-card glass reveal">
+
+        <div class="plan-badge">
+          Pro
+        </div>
+
+        <div class="plan-price">
+          KES 299<span>/month</span>
+        </div>
+
+        <div class="plan-usd">
+          ≈ USD 2.30/month
+        </div>
+
+        <p class="plan-desc">
+          For power users & teams
+        </p>
+
+        <ul class="plan-features">
+          <li>✅ Everything in Premium</li>
+          <li>✅ Referral bonus boost (2x)</li>
+          <li>✅ Early access to new tasks</li>
+          <li>✅ Dedicated account manager</li>
+          <li>✅ API access</li>
+          <li>✅ Team sub-accounts</li>
+          <li>✅ Custom withdrawal schedule</li>
+        </ul>
+
+        <button class="btn-outline btn-full" onclick="openPaymentModal(299, 'Pro Membership')">
+          Upgrade — KES 299
+        </button>
+
+      </div>
+
+    </div>
+
+    <!-- PAYMENT MODAL -->
+    <div class="modal-overlay hidden" id="paymentModal">
+
+      <div class="modal glass">
+
+        <button class="modal-close" onclick="closePaymentModal()">
+          ✕
+        </button>
+
+        <h3>Complete Payment</h3>
+
+        <p class="modal-amount">
+          <strong id="membershipName"></strong>
+        </p>
+
+        <p class="modal-amount">
+          Amount:
+          <strong>KES <span id="membershipAmount"></span></strong>
+        </p>
+
+        <div class="payment-tabs">
+
+          <button class="pay-tab active">
+            📱 M-Pesa
+          </button>
+
+        </div>
+
+        <!-- MPESA FORM -->
+        <div class="pay-form">
+
+          <div class="form-group">
+            <label>M-Pesa Phone Number</label>
+
+            <input type="tel" id="phone" placeholder="0712345678" maxlength="13" />
+          </div>
+
+          <p class="pay-info">
+            You will receive an STK push on your phone.
+            Enter your M-Pesa PIN to confirm payment.
+          </p>
+
+          <button class="btn-primary btn-full" onclick="payMpesa()">
+
+            Send STK Push
+
+          </button>
+
+        </div>
+
+        <div class="security-badges">
+          <span>🔒 Secure Payment</span>
+          <span>✅ Paystack Protected</span>
+          <span>🛡️ M-Pesa STK Push</span>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+</section>
+<script>
+
+  let selectedAmount = 99;
+  let selectedPlan = "Premium Membership";
+
+  function openPaymentModal(amount, plan) {
+
+    selectedAmount = amount;
+    selectedPlan = plan;
+
+    document.getElementById("membershipAmount").innerText = amount;
+    document.getElementById("membershipName").innerText = plan;
+
+    document.getElementById("paymentModal")
+      .classList.remove("hidden");
+  }
+
+  function closePaymentModal() {
+
+    document.getElementById("paymentModal")
+      .classList.add("hidden");
+  }
+
+  async function payMpesa() {
+
+    let phone = document.getElementById("phone").value;
+
+    // Remove spaces
+    phone = phone.replace(/\s/g, '');
+
+    // Convert +254
+    if (phone.startsWith("+254")) {
+      phone = phone.replace("+", "");
+    }
+
+    // Convert 0712345678
+    if (phone.startsWith("07")) {
+      phone = "254" + phone.substring(1);
+    }
+
+    console.log("Formatted Phone:", phone);
+
+    if (!phone) {
+      alert("Enter phone number");
+      return;
+    }
+
+    try {
+
+      const response = await fetch("/pay/mpesa", {
+
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+          phone: phone,
+          amount: selectedAmount,
+          plan: selectedPlan
+        })
+
+      });
+
+      const data = await response.json();
+
+      console.log("PAYMENT RESPONSE:", data);
+
+      if (data.status === true || data.success === true) {
+
+        alert("STK Push sent successfully!");
+
+      } else {
+
+        alert(JSON.stringify(data));
+      }
+
+    } catch (error) {
+
+      console.log(error);
+
+      alert("Server error occurred");
+    }
+  }
+
+</script>
+
+<style>
+  .membership-section {
+    padding: 80px 20px;
+  }
+
+  .section-container {
+    max-width: 1200px;
+    margin: auto;
+  }
+
+  .section-header {
+    text-align: center;
+    margin-bottom: 60px;
+  }
+
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+  }
+
+  .pricing-card {
+    padding: 30px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    position: relative;
+  }
+
+  .featured {
+    border: 2px solid #00b894;
+  }
+
+  .plan-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 30px;
+    background: #222;
+    color: #fff;
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+
+  .popular {
+    background: #00b894;
+  }
+
+  .plan-price {
+    font-size: 42px;
+    font-weight: bold;
+  }
+
+  .plan-price span {
+    font-size: 16px;
+  }
+
+  .plan-features {
+    list-style: none;
+    padding: 0;
+    margin: 30px 0;
+  }
+
+  .plan-features li {
+    margin-bottom: 12px;
+  }
+
+  .btn-primary,
+  .btn-outline {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  .btn-primary {
+    background: #00b894;
+    color: white;
+  }
+
+  .btn-outline {
+    border: 1px solid #00b894;
+    background: transparent;
+    color: white;
+  }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+  }
+
+  .hidden {
+    display: none;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: 420px;
+    padding: 30px;
+    border-radius: 20px;
+    background: #111;
+    color: white;
+    position: relative;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
+  }
+
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid #444;
+    background: #1a1a1a;
+    color: white;
+  }
+
+  .pay-info {
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: #bbb;
+  }
+
+  .security-badges {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 13px;
+  }
+</style>
+
+{{template "footer" .}}

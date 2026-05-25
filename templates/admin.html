@@ -1,0 +1,179 @@
+{{template "head" .}}
+{{template "nav" .}}
+
+<section class="admin-section">
+  <div class="admin-container">
+    <div class="admin-header reveal">
+      <div>
+        <h2>⚙️ Admin Panel</h2>
+        <p>Platform management and analytics</p>
+      </div>
+      <div class="admin-meta">
+        <span class="live-badge">🔴 Live</span>
+        <span>Last updated: just now</span>
+      </div>
+    </div>
+
+    <!-- Admin Stats -->
+    <div class="admin-stats reveal">
+      <div class="admin-stat-card glass">
+        <div class="stat-icon">👥</div>
+        <div class="stat-info"><span>Total Users</span><strong>52,341</strong><small class="green">+234 today</small></div>
+      </div>
+      <div class="admin-stat-card glass">
+        <div class="stat-icon">💰</div>
+        <div class="stat-info"><span>Total Paid Out</span><strong>KES 2.4M</strong><small class="green">+KES 12,500 today</small></div>
+      </div>
+      <div class="admin-stat-card glass">
+        <div class="stat-icon">📋</div>
+        <div class="stat-info"><span>Tasks Completed</span><strong>184,920</strong><small class="green">+1,240 today</small></div>
+      </div>
+      <div class="admin-stat-card glass">
+        <div class="stat-icon">🚨</div>
+        <div class="stat-info"><span>Fraud Flags</span><strong>12</strong><small class="red">3 new</small></div>
+      </div>
+      <div class="admin-stat-card glass">
+        <div class="stat-icon">🎫</div>
+        <div class="stat-info"><span>Support Tickets</span><strong>47</strong><small>8 open</small></div>
+      </div>
+      <div class="admin-stat-card glass">
+        <div class="stat-icon">⭐</div>
+        <div class="stat-info"><span>Premium Members</span><strong>8,421</strong><small class="green">+56 today</small></div>
+      </div>
+    </div>
+
+    <div class="admin-grid">
+
+      <!-- User Management -->
+      <div class="admin-card glass reveal">
+        <div class="admin-card-header">
+          <h3>👥 User Management</h3>
+          <input type="text" placeholder="Search users..." class="admin-search" />
+        </div>
+        <table class="admin-table">
+          <thead><tr><th>User</th><th>Status</th><th>Earned</th><th>Joined</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><div class="lb-member"><div class="avatar sm gw">GW</div>Grace W.</div></td><td><span class="status-badge active">Active</span></td><td class="green">KES 4,200</td><td>Jan 2026</td><td><button class="btn-sm" onclick="showNotification('👤 User profile opened')">View</button></td></tr>
+            <tr><td><div class="lb-member"><div class="avatar sm ao">AO</div>Amara O.</div></td><td><span class="status-badge active">Active</span></td><td class="green">KES 3,800</td><td>Feb 2026</td><td><button class="btn-sm" onclick="showNotification('👤 User profile opened')">View</button></td></tr>
+            <tr><td><div class="lb-member"><div class="avatar sm">XX</div>Unknown User</div></td><td><span class="status-badge flagged">Flagged</span></td><td class="red">KES 0</td><td>May 2026</td><td><button class="btn-sm" style="background:var(--red)" onclick="showNotification('🚫 User suspended')">Suspend</button></td></tr>
+            <tr><td><div class="lb-member"><div class="avatar sm sk">SK</div>Sara K.</div></td><td><span class="status-badge active">Active</span></td><td class="green">KES 3,200</td><td>Mar 2026</td><td><button class="btn-sm" onclick="showNotification('👤 User profile opened')">View</button></td></tr>
+            <tr><td><div class="lb-member"><div class="avatar sm">DN</div>David N.</div></td><td><span class="status-badge pending">Pending</span></td><td>KES 0</td><td>May 2026</td><td><button class="btn-sm btn-gold" onclick="showNotification('✅ User verified')">Verify</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Payment Monitor -->
+      <div class="admin-card glass reveal">
+        <h3>💸 Payment Monitor</h3>
+        <div class="payment-monitor">
+          <div class="pm-item">
+            <div class="pm-info"><strong>M-Pesa Withdrawal</strong><small>Grace W. · +254 712 XXX XXX</small></div>
+            <span class="green">KES 800</span>
+            <span class="status-badge active">Processed</span>
+          </div>
+          <div class="pm-item">
+            <div class="pm-info"><strong>Premium Upgrade</strong><small>David N. · Card ****1234</small></div>
+            <span class="green">KES 99</span>
+            <span class="status-badge active">Confirmed</span>
+          </div>
+          <div class="pm-item">
+            <div class="pm-info"><strong>M-Pesa Withdrawal</strong><small>Unknown · +254 700 000 000</small></div>
+            <span class="red">KES 5,000</span>
+            <span class="status-badge flagged">Flagged</span>
+          </div>
+          <div class="pm-item">
+            <div class="pm-info"><strong>Survey Reward</strong><small>Amara O. · Auto-credit</small></div>
+            <span class="green">KES 300</span>
+            <span class="status-badge active">Processed</span>
+          </div>
+          <div class="pm-item">
+            <div class="pm-info"><strong>Card Withdrawal</strong><small>Sara K. · Card ****5678</small></div>
+            <span>KES 1,200</span>
+            <span class="status-badge pending">Pending</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fraud Prevention -->
+      <div class="admin-card glass reveal">
+        <h3>🚨 Fraud Prevention</h3>
+        <div class="fraud-list">
+          <div class="fraud-item high">
+            <div class="fraud-icon">⚠️</div>
+            <div class="fraud-info">
+              <strong>Multiple accounts detected</strong>
+              <small>IP 197.x.x.x — 5 accounts registered in 10 minutes</small>
+            </div>
+            <div class="fraud-actions">
+              <button class="btn-sm" style="background:var(--red)" onclick="showNotification('🚫 Accounts blocked')">Block</button>
+              <button class="btn-sm btn-outline" onclick="showNotification('👁️ Investigating...')">Review</button>
+            </div>
+          </div>
+          <div class="fraud-item medium">
+            <div class="fraud-icon">⚡</div>
+            <div class="fraud-info">
+              <strong>Unusual withdrawal pattern</strong>
+              <small>User #4421 — 12 withdrawals in 1 hour</small>
+            </div>
+            <div class="fraud-actions">
+              <button class="btn-sm btn-gold" onclick="showNotification('⏸️ Account paused')">Pause</button>
+              <button class="btn-sm btn-outline" onclick="showNotification('👁️ Investigating...')">Review</button>
+            </div>
+          </div>
+          <div class="fraud-item low">
+            <div class="fraud-icon">ℹ️</div>
+            <div class="fraud-info">
+              <strong>Survey completion too fast</strong>
+              <small>User #8821 — 15-min survey done in 45 seconds</small>
+            </div>
+            <div class="fraud-actions">
+              <button class="btn-sm" onclick="showNotification('🔄 Survey invalidated')">Invalidate</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Support Tickets -->
+      <div class="admin-card glass reveal">
+        <h3>🎫 Support Tickets</h3>
+        <div class="ticket-list">
+          <div class="ticket-item">
+            <div class="ticket-info">
+              <strong>Withdrawal not received</strong>
+              <small>James M. · 2 hours ago</small>
+            </div>
+            <span class="status-badge flagged">Open</span>
+            <button class="btn-sm" onclick="showNotification('🎫 Ticket opened')">Reply</button>
+          </div>
+          <div class="ticket-item">
+            <div class="ticket-info">
+              <strong>Survey reward missing</strong>
+              <small>Lucy N. · 4 hours ago</small>
+            </div>
+            <span class="status-badge flagged">Open</span>
+            <button class="btn-sm" onclick="showNotification('🎫 Ticket opened')">Reply</button>
+          </div>
+          <div class="ticket-item">
+            <div class="ticket-info">
+              <strong>Account verification issue</strong>
+              <small>Peter K. · 1 day ago</small>
+            </div>
+            <span class="status-badge pending">In Progress</span>
+            <button class="btn-sm" onclick="showNotification('🎫 Ticket opened')">Reply</button>
+          </div>
+          <div class="ticket-item">
+            <div class="ticket-info">
+              <strong>Premium upgrade not reflecting</strong>
+              <small>Faith W. · 2 days ago</small>
+            </div>
+            <span class="status-badge active">Resolved</span>
+            <button class="btn-sm btn-outline" onclick="showNotification('✅ Ticket closed')">Close</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+{{template "footer" .}}

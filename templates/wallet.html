@@ -1,0 +1,142 @@
+{{template "head" .}}
+{{template "nav" .}}
+
+<section class="wallet-section">
+  <div class="section-container">
+    <div class="wallet-header reveal">
+      <h2>My Wallet</h2>
+      <p>Manage your earnings and withdrawals</p>
+    </div>
+
+    <!-- Balance Card -->
+    <div class="balance-card glass reveal">
+      <div class="balance-info">
+        <span>Available Balance</span>
+        <strong class="balance-amount">KES 1,240</strong>
+        <span class="balance-usd">≈ USD 9.54</span>
+      </div>
+      <div class="balance-actions">
+        <button class="btn-primary" onclick="showWithdraw()">Withdraw</button>
+        <div class="security-indicator">🔒 Secured</div>
+      </div>
+    </div>
+
+    <!-- Withdraw Modal -->
+    <div class="modal-overlay hidden" id="withdrawModal">
+      <div class="modal glass">
+        <button class="modal-close" onclick="closeWithdraw()">✕</button>
+        <h3>Withdraw Funds</h3>
+
+        <div class="payment-tabs">
+          <button class="pay-tab active" onclick="switchPay('wmpesa', this)">📱 M-Pesa</button>
+          <button class="pay-tab" onclick="switchPay('wcard', this)">💳 Card</button>
+        </div>
+
+        <div id="wmpesa" class="pay-form">
+          <div class="form-group">
+            <label>M-Pesa Number</label>
+            <input type="tel" placeholder="+254 7XX XXX XXX" />
+          </div>
+          <div class="form-group">
+            <label>Amount (KES)</label>
+            <input type="number" placeholder="Min. KES 50" min="50" max="1240" />
+          </div>
+          <p class="pay-info">Minimum withdrawal: KES 50. Processing time: 2–5 minutes.</p>
+          <button class="btn-primary btn-full" onclick="simulateWithdraw()">Withdraw via M-Pesa</button>
+        </div>
+
+        <div id="wcard" class="pay-form hidden">
+          <div class="form-group">
+            <label>Card Number (last 4 digits)</label>
+            <input type="text" placeholder="**** **** **** 1234" />
+          </div>
+          <div class="form-group">
+            <label>Amount (KES)</label>
+            <input type="number" placeholder="Min. KES 100" min="100" max="1240" />
+          </div>
+          <p class="pay-info">Card withdrawals take 1–3 business days. Minimum: KES 100.</p>
+          <button class="btn-primary btn-full" onclick="simulateWithdraw()">Withdraw to Card</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Withdraw Success -->
+    <div class="modal-overlay hidden" id="withdrawSuccess">
+      <div class="modal glass">
+        <div class="success-anim">✅</div>
+        <h3>Withdrawal Initiated!</h3>
+        <div class="receipt-card">
+          <div class="receipt-row"><span>Method</span><strong>M-Pesa</strong></div>
+          <div class="receipt-row"><span>Amount</span><strong>KES 500</strong></div>
+          <div class="receipt-row"><span>Transaction ID</span><strong>GC-WD-44821</strong></div>
+          <div class="receipt-row"><span>ETA</span><strong>2–5 minutes</strong></div>
+        </div>
+        <button class="btn-primary btn-full" onclick="closeWithdrawSuccess()">Done</button>
+      </div>
+    </div>
+
+    <!-- Transaction History -->
+    <div class="tx-section reveal">
+      <div class="tx-header">
+        <h3>Transaction History</h3>
+        <div class="tx-filters">
+          <button class="filter-btn active" onclick="filterTx('all', this)">All</button>
+          <button class="filter-btn" onclick="filterTx('credit', this)">Credits</button>
+          <button class="filter-btn" onclick="filterTx('debit', this)">Withdrawals</button>
+        </div>
+      </div>
+      <div class="tx-list" id="txList">
+        <div class="tx-item credit" data-type="credit">
+          <div class="tx-icon">📋</div>
+          <div class="tx-info">
+            <strong>Survey Reward</strong>
+            <span>Consumer Habits · May 18, 2026</span>
+          </div>
+          <span class="tx-amount green">+KES 150</span>
+        </div>
+        <div class="tx-item debit" data-type="debit">
+          <div class="tx-icon">💸</div>
+          <div class="tx-info">
+            <strong>M-Pesa Withdrawal</strong>
+            <span>+254 712 XXX XXX · May 17, 2026</span>
+          </div>
+          <span class="tx-amount red">-KES 500</span>
+        </div>
+        <div class="tx-item credit" data-type="credit">
+          <div class="tx-icon">📋</div>
+          <div class="tx-info">
+            <strong>Survey Reward</strong>
+            <span>Tech Usage Survey · May 16, 2026</span>
+          </div>
+          <span class="tx-amount green">+KES 200</span>
+        </div>
+        <div class="tx-item credit" data-type="credit">
+          <div class="tx-icon">👥</div>
+          <div class="tx-info">
+            <strong>Referral Bonus</strong>
+            <span>Friend joined · May 15, 2026</span>
+          </div>
+          <span class="tx-amount green">+KES 50</span>
+        </div>
+        <div class="tx-item debit" data-type="debit">
+          <div class="tx-icon">💸</div>
+          <div class="tx-info">
+            <strong>M-Pesa Withdrawal</strong>
+            <span>+254 712 XXX XXX · May 14, 2026</span>
+          </div>
+          <span class="tx-amount red">-KES 300</span>
+        </div>
+        <div class="tx-item credit" data-type="credit">
+          <div class="tx-icon">📋</div>
+          <div class="tx-info">
+            <strong>Survey Reward</strong>
+            <span>Brand Awareness Poll · May 13, 2026</span>
+          </div>
+          <span class="tx-amount green">+KES 75</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{{template "footer" .}}

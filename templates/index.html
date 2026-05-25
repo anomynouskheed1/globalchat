@@ -1,0 +1,327 @@
+{{template "head" .}}
+{{template "nav" .}}
+
+<!-- HERO with real background image + blue overlay + parallax -->
+<section class="hero" id="hero">
+  <div class="hero-bg" id="parallaxBg"></div>
+  <div class="hero-overlay"></div>
+  <div class="hero-inner">
+    <div class="hero-content reveal">
+      <div class="hero-badge">🌍 Trusted by 50,000+ members worldwide</div>
+      <h1>Chat, Connect &<br /><span class="gradient-text-white">Earn Real Rewards</span></h1>
+      <p class="hero-sub">Join a transparent community platform. Complete micro-tasks, answer surveys, and get paid — no hidden fees, no surprises.</p>
+      <div class="hero-cta">
+        <button class="btn-white btn-lg" onclick="location.href='/register'">Get Started Free</button>
+        <button class="btn-outline-white btn-lg" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">See How It Works ↓</button>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-hero"><strong>KES 2.4M+</strong><span>Paid Out</span></div>
+        <div class="stat-divider"></div>
+        <div class="stat-hero"><strong>50K+</strong><span>Members</span></div>
+        <div class="stat-divider"></div>
+        <div class="stat-hero"><strong>4.8★</strong><span>Rating</span></div>
+        <div class="stat-divider"></div>
+        <div class="stat-hero"><strong>30+</strong><span>Countries</span></div>
+      </div>
+    </div>
+    <div class="hero-illustration reveal-right">
+      <div class="chat-mockup glass-dark">
+        <div class="mockup-header">
+          <span class="mockup-dot red"></span>
+          <span class="mockup-dot yellow"></span>
+          <span class="mockup-dot green-dot"></span>
+          <span class="mockup-title">GlobalChat — Tech Room 🌐</span>
+        </div>
+        <div class="chat-messages">
+          <div class="chat-bubble user">Just completed a survey! 🎉</div>
+          <div class="chat-bubble bot">KES 150 added to your wallet ✅</div>
+          <div class="chat-bubble user">Withdrawing to M-Pesa now!</div>
+          <div class="chat-bubble bot">Transfer initiated. ETA: 2 min 🚀</div>
+          <div class="chat-bubble user">Love this platform 🔥</div>
+        </div>
+        <div class="mockup-input">
+          <span>Type a message...</span>
+          <button>➤</button>
+        </div>
+      </div>
+      <div class="floating-card fc1 glass-dark">
+        <span>💰</span>
+        <div><strong>+KES 300</strong><small>Survey reward</small></div>
+      </div>
+      <div class="floating-card fc2 glass-dark">
+        <span>✅</span>
+        <div><strong>Task Done</strong><small>Brand Poll</small></div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-scroll-hint">
+    <span>Scroll to explore</span>
+    <div class="scroll-arrow">↓</div>
+  </div>
+</section>
+
+<!-- TRUST BAR -->
+<div class="trust-bar">
+  <div class="trust-inner">
+    <span>🔒 256-bit SSL</span>
+    <span>✅ Verified Payouts</span>
+    <span>📱 M-Pesa Integrated</span>
+    <span>🌍 30+ Countries</span>
+    <span>⚡ Instant Rewards</span>
+    <span>🛡️ GDPR Compliant</span>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="section-container">
+    <div class="section-header reveal">
+      <span class="section-tag">Why GlobalChat</span>
+      <h2>Everything you need to earn transparently</h2>
+      <p>Built for real people. Real tasks. Real money.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon">🔒</div>
+        <h3>Secure Payouts</h3>
+        <p>Every transaction is encrypted and verified. M-Pesa and card payouts processed within minutes.</p>
+        <a href="/wallet" class="feature-link">View Wallet →</a>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">⚡</div>
+        <h3>Fast Onboarding</h3>
+        <p>Sign up in under 2 minutes. No lengthy verification — start earning the same day.</p>
+        <a href="/register" class="feature-link">Sign Up Free →</a>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">💬</div>
+        <h3>Community Chat Rooms</h3>
+        <p>Connect with members globally. Share tips, discuss tasks, and grow your network.</p>
+        <a href="/chat" class="feature-link">Join Chat →</a>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">🏆</div>
+        <h3>Transparent Rewards</h3>
+        <p>See exactly what you earn per task before you start. No hidden deductions, ever.</p>
+        <a href="/rewards" class="feature-link">View Rewards →</a>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">📋</div>
+        <h3>100+ Active Tasks</h3>
+        <p>New surveys and tasks added daily. From quick 2-min polls to detailed 20-min studies.</p>
+        <a href="/tasks" class="feature-link">Browse Tasks →</a>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">📊</div>
+        <h3>Leaderboard & Bonuses</h3>
+        <p>Compete with top earners. Monthly bonuses for top performers up to KES 5,000.</p>
+        <a href="/leaderboard" class="feature-link">See Rankings →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-it-works">
+  <div class="section-container">
+    <div class="section-header reveal">
+      <span class="section-tag">Process</span>
+      <h2>Start earning in 4 simple steps</h2>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num">01</div>
+        <div class="step-icon">👤</div>
+        <h3>Create Account</h3>
+        <p>Sign up free with email or phone. Verify your identity in seconds.</p>
+        <a href="/register" class="feature-link">Get Started →</a>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step reveal">
+        <div class="step-num">02</div>
+        <div class="step-icon">📋</div>
+        <h3>Pick a Task</h3>
+        <p>Browse 100+ surveys and tasks. See the reward before you start.</p>
+        <a href="/tasks" class="feature-link">Browse Tasks →</a>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step reveal">
+        <div class="step-num">03</div>
+        <div class="step-icon">💰</div>
+        <h3>Earn Rewards</h3>
+        <p>Rewards credited instantly to your wallet after task verification.</p>
+        <a href="/rewards" class="feature-link">View Rewards →</a>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step reveal">
+        <div class="step-num">04</div>
+        <div class="step-icon">📱</div>
+        <h3>Withdraw</h3>
+        <p>Cash out via M-Pesa or card. Minimum withdrawal: KES 50.</p>
+        <a href="/wallet" class="feature-link">My Wallet →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LIVE STATS TICKER -->
+<div class="live-ticker">
+  <div class="ticker-label">🔴 LIVE</div>
+  <div class="ticker-track">
+    <div class="ticker-items" id="tickerItems">
+      <span>James M. just earned KES 150 💰</span>
+      <span>Amara O. withdrew KES 800 via M-Pesa ✅</span>
+      <span>Sara K. completed 5 tasks today 🏆</span>
+      <span>New survey added: Tech Habits — KES 300 📋</span>
+      <span>David N. joined from Uganda 🌍</span>
+      <span>Top earner this week: Grace W. — KES 4,200 🥇</span>
+      <span>Payout processed: KES 12,500 in last hour 💸</span>
+    </div>
+  </div>
+</div>
+
+<!-- TASK PREVIEW -->
+<section class="task-preview">
+  <div class="section-container">
+    <div class="section-header reveal">
+      <span class="section-tag">Live Tasks</span>
+      <h2>Tasks available right now</h2>
+      <p>New tasks added every day. All rewards shown upfront.</p>
+    </div>
+    <div class="task-preview-grid">
+      <div class="tp-card reveal">
+        <div class="tp-header">
+          <span class="tp-category">Survey</span>
+          <span class="tp-time">~5 min</span>
+        </div>
+        <h3>Consumer Shopping Habits</h3>
+        <p>Share your online shopping preferences and frequency.</p>
+        <div class="tp-footer">
+          <span class="tp-pay">KES 150</span>
+          <button class="btn-sm" onclick="location.href='/survey'">Start Now</button>
+        </div>
+      </div>
+      <div class="tp-card reveal">
+        <div class="tp-header">
+          <span class="tp-category">Survey</span>
+          <span class="tp-time">~10 min</span>
+        </div>
+        <h3>Mobile App User Experience</h3>
+        <p>Rate and review your experience with popular mobile apps.</p>
+        <div class="tp-footer">
+          <span class="tp-pay">KES 300</span>
+          <button class="btn-sm" onclick="location.href='/survey'">Start Now</button>
+        </div>
+      </div>
+      <div class="tp-card reveal">
+        <div class="tp-header">
+          <span class="tp-category">Poll</span>
+          <span class="tp-time">~3 min</span>
+        </div>
+        <h3>Brand Awareness Poll</h3>
+        <p>Quick 5-question poll about brand recognition in your region.</p>
+        <div class="tp-footer">
+          <span class="tp-pay">KES 75</span>
+          <button class="btn-sm" onclick="location.href='/screening'">Start Now</button>
+        </div>
+      </div>
+      <div class="tp-card reveal premium-glow">
+        <div class="tp-header">
+          <span class="tp-category premium-tag">Premium</span>
+          <span class="tp-time">~15 min</span>
+        </div>
+        <h3>Financial Behaviour Study</h3>
+        <p>In-depth survey on savings, investments and spending habits.</p>
+        <div class="tp-footer">
+          <span class="tp-pay gold">KES 500</span>
+          <button class="btn-sm btn-gold" onclick="location.href='/membership'">Unlock</button>
+        </div>
+      </div>
+    </div>
+    <div class="section-cta reveal">
+      <button class="btn-primary btn-lg" onclick="location.href='/tasks'">View All 100+ Tasks →</button>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials">
+  <div class="section-container">
+    <div class="section-header reveal">
+      <span class="section-tag">Community</span>
+      <h2>What our members say</h2>
+    </div>
+    <div class="testimonials-grid">
+      <div class="testimonial-card reveal">
+        <div class="stars">★★★★★</div>
+        <p>"I've withdrawn over KES 8,000 in the past month. The M-Pesa integration is seamless and instant."</p>
+        <div class="testimonial-author">
+          <div class="avatar">JM</div>
+          <div><strong>James M.</strong><span>Nairobi, Kenya</span></div>
+        </div>
+      </div>
+      <div class="testimonial-card reveal">
+        <div class="stars">★★★★★</div>
+        <p>"Finally a platform that shows exactly what I earn per task. No surprises, no hidden fees. Love it."</p>
+        <div class="testimonial-author">
+          <div class="avatar">AO</div>
+          <div><strong>Amara O.</strong><span>Lagos, Nigeria</span></div>
+        </div>
+      </div>
+      <div class="testimonial-card reveal">
+        <div class="stars">★★★★☆</div>
+        <p>"The community chat rooms are great for networking. I've connected with people from 15 countries."</p>
+        <div class="testimonial-author">
+          <div class="avatar">SK</div>
+          <div><strong>Sara K.</strong><span>Kampala, Uganda</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq">
+  <div class="section-container">
+    <div class="section-header reveal">
+      <span class="section-tag">FAQ</span>
+      <h2>Frequently asked questions</h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item reveal">
+        <button class="faq-q" onclick="toggleFaq(this)">How much can I earn per task? <span>+</span></button>
+        <div class="faq-a">Tasks pay between KES 10 and KES 500 depending on complexity and length. All amounts are shown before you start. Premium members get access to higher-paying tasks up to KES 500.</div>
+      </div>
+      <div class="faq-item reveal">
+        <button class="faq-q" onclick="toggleFaq(this)">Is there a fee to join? <span>+</span></button>
+        <div class="faq-a">Basic membership is completely free. Premium membership (KES 99/month) unlocks higher-paying tasks and priority withdrawals. All fees are disclosed upfront with no hidden charges.</div>
+      </div>
+      <div class="faq-item reveal">
+        <button class="faq-q" onclick="toggleFaq(this)">How long do withdrawals take? <span>+</span></button>
+        <div class="faq-a">M-Pesa withdrawals process within 2–5 minutes. Card withdrawals take 1–3 business days. Minimum withdrawal is KES 50 for M-Pesa and KES 100 for card.</div>
+      </div>
+      <div class="faq-item reveal">
+        <button class="faq-q" onclick="toggleFaq(this)">Is my data safe? <span>+</span></button>
+        <div class="faq-a">Yes. We use 256-bit SSL encryption, never sell your data, and comply with GDPR and local data protection laws. Your financial data is never stored on our servers.</div>
+      </div>
+      <div class="faq-item reveal">
+        <button class="faq-q" onclick="toggleFaq(this)">Can I refer friends? <span>+</span></button>
+        <div class="faq-a">Yes! Earn KES 50 for every friend who joins and completes their first task. Premium members earn KES 100 per referral. There's no limit on referrals.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BANNER -->
+<section class="cta-banner reveal">
+  <div class="cta-content">
+    <h2>Ready to start earning?</h2>
+    <p>Join 50,000+ members already earning on GlobalChat. Free to join, transparent always.</p>
+    <div class="cta-btns">
+      <button class="btn-white btn-lg" onclick="location.href='/register'">Create Free Account</button>
+      <button class="btn-outline-white btn-lg" onclick="location.href='/tasks'">Browse Tasks First</button>
+    </div>
+  </div>
+</section>
+
+{{template "footer" .}}

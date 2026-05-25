@@ -1,0 +1,198 @@
+{{template "head" .}}
+{{template "nav" .}}
+
+<section class="dashboard-section">
+  <div class="dash-container">
+
+    <div class="dash-header reveal">
+      <div>
+        <h2>Welcome back, James 👋</h2>
+        <p>Monday, May 18, 2026 · Premium Member ⭐</p>
+      </div>
+      <div class="dash-header-actions">
+        <button class="btn-outline" onclick="location.href='/tasks'">Browse Tasks</button>
+        <button class="btn-primary" onclick="location.href='/wallet'">Withdraw Funds</button>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <a href="/wallet" class="stat-card glass reveal stat-link">
+        <div class="stat-icon">💰</div>
+        <div class="stat-info"><span>Wallet Balance</span><strong>KES 1,240</strong><small class="green">+KES 150 today</small></div>
+      </a>
+      <a href="/tasks" class="stat-card glass reveal stat-link">
+        <div class="stat-icon">✅</div>
+        <div class="stat-info"><span>Tasks Completed</span><strong>47</strong><small>3 available now</small></div>
+      </a>
+      <a href="/chat" class="stat-card glass reveal stat-link">
+        <div class="stat-icon">💬</div>
+        <div class="stat-info"><span>Chat Messages</span><strong>312</strong><small>1,247 online now</small></div>
+      </a>
+      <a href="/rewards" class="stat-card glass reveal stat-link">
+        <div class="stat-icon">🏆</div>
+        <div class="stat-info"><span>Total Earned</span><strong>KES 8,450</strong><small>Rank #34 this month</small></div>
+      </a>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions reveal">
+      <h3>Quick Actions</h3>
+      <div class="qa-grid">
+        <a href="/survey" class="qa-btn glass">
+          <span>📋</span><strong>Take Survey</strong><small>Earn up to KES 300</small>
+        </a>
+        <a href="/screening" class="qa-btn glass">
+          <span>⚡</span><strong>Quick Poll</strong><small>Earn KES 50–75</small>
+        </a>
+        <a href="/chat" class="qa-btn glass">
+          <span>💬</span><strong>Join Chat</strong><small>Earn KES 100</small>
+        </a>
+        <a href="/wallet" class="qa-btn glass">
+          <span>💸</span><strong>Withdraw</strong><small>KES 1,240 available</small>
+        </a>
+        <a href="/leaderboard" class="qa-btn glass">
+          <span>🏆</span><strong>Leaderboard</strong><small>You're rank #34</small>
+        </a>
+        <a href="/profile" class="qa-btn glass">
+          <span>👤</span><strong>My Profile</strong><small>Edit & settings</small>
+        </a>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <!-- Recent Activity -->
+      <div class="dash-card glass reveal">
+        <div class="dash-card-header">
+          <h3>Recent Activity</h3>
+          <a href="/wallet" class="feature-link">View all →</a>
+        </div>
+        <div class="activity-list">
+          <div class="activity-item">
+            <span class="act-icon">📋</span>
+            <div class="act-info"><strong>Survey Completed</strong><span>Consumer Habits Survey</span></div>
+            <span class="act-reward green">+KES 150</span>
+          </div>
+          <div class="activity-item">
+            <span class="act-icon">💬</span>
+            <div class="act-info"><strong>Chat Bonus</strong><span>Active in Tech Room</span></div>
+            <span class="act-reward green">+KES 100</span>
+          </div>
+          <div class="activity-item">
+            <span class="act-icon">💸</span>
+            <div class="act-info"><strong>Withdrawal</strong><span>M-Pesa · +254 712 XXX XXX</span></div>
+            <span class="act-reward red">-KES 500</span>
+          </div>
+          <div class="activity-item">
+            <span class="act-icon">📋</span>
+            <div class="act-info"><strong>Survey Completed</strong><span>Tech Usage Survey</span></div>
+            <span class="act-reward green">+KES 200</span>
+          </div>
+          <div class="activity-item">
+            <span class="act-icon">👥</span>
+            <div class="act-info"><strong>Referral Bonus</strong><span>Friend joined via your link</span></div>
+            <span class="act-reward green">+KES 50</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Available Tasks -->
+      <div class="dash-card glass reveal">
+        <div class="dash-card-header">
+          <h3>Available Tasks</h3>
+          <a href="/tasks" class="feature-link">View all 127 →</a>
+        </div>
+        <div class="task-list">
+          <div class="task-item">
+            <div class="task-info"><strong>Shopping Habits Survey</strong><span>~5 min · 8 questions</span></div>
+            <div class="task-right">
+              <span class="task-pay">KES 120</span>
+              <button class="btn-sm" onclick="location.href='/survey'">Start</button>
+            </div>
+          </div>
+          <div class="task-item">
+            <div class="task-info"><strong>Mobile App Feedback</strong><span>~10 min · 15 questions</span></div>
+            <div class="task-right">
+              <span class="task-pay">KES 300</span>
+              <button class="btn-sm" onclick="location.href='/survey'">Start</button>
+            </div>
+          </div>
+          <div class="task-item">
+            <div class="task-info"><strong>Brand Awareness Poll</strong><span>~3 min · 5 questions</span></div>
+            <div class="task-right">
+              <span class="task-pay">KES 75</span>
+              <button class="btn-sm" onclick="location.href='/screening'">Start</button>
+            </div>
+          </div>
+          <div class="task-item">
+            <div class="task-info"><strong>Tech Room Chat Task</strong><span>~15 min · 10 messages</span></div>
+            <div class="task-right">
+              <span class="task-pay">KES 100</span>
+              <button class="btn-sm" onclick="location.href='/chat'">Join</button>
+            </div>
+          </div>
+          <div class="task-item premium-task">
+            <div class="task-info"><strong>Finance Survey 🔒 Premium</strong><span>~15 min · 20 questions</span></div>
+            <div class="task-right">
+              <span class="task-pay gold">KES 500</span>
+              <button class="btn-sm btn-gold" onclick="location.href='/membership'">Unlock</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress & Rewards -->
+    <div class="dash-grid">
+      <div class="dash-card glass reveal">
+        <div class="dash-card-header">
+          <h3>🎯 Weekly Goal</h3>
+          <a href="/rewards" class="feature-link">View rewards →</a>
+        </div>
+        <div class="weekly-goal">
+          <div class="wg-info">
+            <span>Complete 10 tasks this week</span>
+            <strong>7 / 10 done</strong>
+          </div>
+          <div class="progress-track"><div class="progress-fill" style="width:70%"></div></div>
+          <p>3 more tasks to unlock <strong>KES 200 bonus</strong></p>
+          <button class="btn-primary" style="margin-top:1rem" onclick="location.href='/tasks'">Complete Tasks →</button>
+        </div>
+      </div>
+
+      <div class="dash-card glass reveal">
+        <div class="dash-card-header">
+          <h3>📊 Leaderboard Position</h3>
+          <a href="/leaderboard" class="feature-link">Full rankings →</a>
+        </div>
+        <div class="lb-preview">
+          <div class="lb-prev-row gold-row"><span>🥇</span><span>Grace W.</span><span class="green">KES 4,200</span></div>
+          <div class="lb-prev-row silver-row"><span>🥈</span><span>Amara O.</span><span class="green">KES 3,800</span></div>
+          <div class="lb-prev-row bronze-row"><span>🥉</span><span>Sara K.</span><span class="green">KES 3,200</span></div>
+          <div class="lb-prev-row lb-you"><span>34</span><span>You (James M.)</span><span class="green">KES 2,350</span></div>
+        </div>
+        <p style="font-size:.85rem;color:var(--text-muted);margin-top:.75rem">Earn KES 1,850 more to reach top 10 and win a bonus!</p>
+      </div>
+    </div>
+
+    <!-- Referral Section -->
+    <div class="referral-card glass reveal">
+      <div class="referral-info">
+        <h3>🎁 Refer & Earn</h3>
+        <p>Earn KES 50 for every friend who joins and completes their first task. Premium members earn KES 100 per referral.</p>
+        <div class="ref-stats-row">
+          <span>12 friends referred</span>
+          <span>·</span>
+          <span class="green">KES 600 earned from referrals</span>
+        </div>
+      </div>
+      <div class="referral-link-wrap">
+        <input type="text" value="https://globalchat.app/ref/james2026" readonly id="refLink" />
+        <button class="btn-primary" onclick="copyRef()">Copy Link</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+{{template "footer" .}}

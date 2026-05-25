@@ -1,0 +1,192 @@
+{{template "head" .}}
+{{template "nav" .}}
+
+<section class="chat-section">
+  <div class="chat-layout">
+
+    <!-- Sidebar: Rooms -->
+    <aside class="chat-sidebar glass">
+      <div class="sidebar-header">
+        <h3>💬 Chat Rooms</h3>
+        <span class="online-count">🟢 1,247 online</span>
+      </div>
+      <div class="room-list">
+        <button class="room-item active" onclick="switchRoom('Tech Room 🌐', this)">
+          <span class="room-icon">🌐</span>
+          <div class="room-info"><strong>Tech Room</strong><small>342 online</small></div>
+          <span class="room-earn">+KES 100</span>
+        </button>
+        <button class="room-item" onclick="switchRoom('Finance Room 💰', this)">
+          <span class="room-icon">💰</span>
+          <div class="room-info"><strong>Finance Room</strong><small>218 online</small></div>
+          <span class="room-earn">+KES 120</span>
+        </button>
+        <button class="room-item" onclick="switchRoom('Health & Wellness 🏥', this)">
+          <span class="room-icon">🏥</span>
+          <div class="room-info"><strong>Health & Wellness</strong><small>156 online</small></div>
+          <span class="room-earn">+KES 80</span>
+        </button>
+        <button class="room-item" onclick="switchRoom('Business & Startups 🚀', this)">
+          <span class="room-icon">🚀</span>
+          <div class="room-info"><strong>Business & Startups</strong><small>189 online</small></div>
+          <span class="room-earn">+KES 100</span>
+        </button>
+        <button class="room-item" onclick="switchRoom('Entertainment 🎬', this)">
+          <span class="room-icon">🎬</span>
+          <div class="room-info"><strong>Entertainment</strong><small>421 online</small></div>
+          <span class="room-earn">+KES 60</span>
+        </button>
+        <button class="room-item" onclick="switchRoom('Sports ⚽', this)">
+          <span class="room-icon">⚽</span>
+          <div class="room-info"><strong>Sports</strong><small>121 online</small></div>
+          <span class="room-earn">+KES 60</span>
+        </button>
+      </div>
+      <div class="chat-task-box">
+        <h4>🎯 Active Chat Task</h4>
+        <p>Send 10 messages in Tech Room to earn KES 100</p>
+        <div class="progress-track"><div class="progress-fill" id="chatProgress" style="width:30%"></div></div>
+        <small id="chatProgressLabel">3 / 10 messages</small>
+      </div>
+    </aside>
+
+    <!-- Main Chat -->
+    <div class="chat-main">
+      <div class="chat-header glass">
+        <div class="chat-room-info">
+          <span class="room-icon-lg">🌐</span>
+          <div>
+            <h3 id="roomTitle">Tech Room 🌐</h3>
+            <small>342 members online · Earn KES 100 for 10 messages</small>
+          </div>
+        </div>
+        <div class="chat-header-actions">
+          <span class="chat-earn-badge">💰 Earning: KES 100</span>
+        </div>
+      </div>
+
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-date-divider">Today</div>
+
+        <div class="msg-row other">
+          <div class="msg-avatar">JM</div>
+          <div class="msg-content">
+            <span class="msg-name">James M. <span class="msg-badge premium">Premium</span></span>
+            <div class="msg-bubble">Anyone tried the new M-Pesa API integration? Works really well for micro-payments 🔥</div>
+            <span class="msg-time">10:24 AM</span>
+          </div>
+        </div>
+
+        <div class="msg-row other">
+          <div class="msg-avatar ao">AO</div>
+          <div class="msg-content">
+            <span class="msg-name">Amara O.</span>
+            <div class="msg-bubble">Yes! I integrated it last week. The STK push is super smooth. Took me about 2 hours to set up.</div>
+            <span class="msg-time">10:26 AM</span>
+          </div>
+        </div>
+
+        <div class="msg-row other">
+          <div class="msg-avatar sk">SK</div>
+          <div class="msg-content">
+            <span class="msg-name">Sara K. <span class="msg-badge top">Top Earner</span></span>
+            <div class="msg-bubble">What's everyone's favourite stack for building mobile apps? I'm between React Native and Flutter 🤔</div>
+            <span class="msg-time">10:29 AM</span>
+          </div>
+        </div>
+
+        <div class="msg-row other">
+          <div class="msg-avatar">DN</div>
+          <div class="msg-content">
+            <span class="msg-name">David N.</span>
+            <div class="msg-bubble">Flutter all the way! Single codebase, great performance. I shipped an app to both stores in 3 weeks.</div>
+            <span class="msg-time">10:31 AM</span>
+          </div>
+        </div>
+
+        <div class="msg-row other">
+          <div class="msg-avatar gw">GW</div>
+          <div class="msg-content">
+            <span class="msg-name">Grace W. <span class="msg-badge premium">Premium</span></span>
+            <div class="msg-bubble">React Native has a bigger community though. Easier to find help when you're stuck 💪</div>
+            <span class="msg-time">10:33 AM</span>
+          </div>
+        </div>
+
+        <div class="msg-row me">
+          <div class="msg-content">
+            <div class="msg-bubble">I've used both — Flutter for performance-heavy apps, React Native when the team already knows JS.</div>
+            <span class="msg-time">10:35 AM</span>
+          </div>
+        </div>
+
+        <div class="msg-row other">
+          <div class="msg-avatar">JM</div>
+          <div class="msg-content">
+            <span class="msg-name">James M.</span>
+            <div class="msg-bubble">That's a solid take. What about backend? Anyone using Go here? 👀</div>
+            <span class="msg-time">10:36 AM</span>
+          </div>
+        </div>
+
+        <div class="msg-row other">
+          <div class="msg-avatar ao">AO</div>
+          <div class="msg-content">
+            <span class="msg-name">Amara O.</span>
+            <div class="msg-bubble">Go is amazing for APIs. Super fast, low memory usage. GlobalChat itself runs on Go 😄</div>
+            <span class="msg-time">10:38 AM</span>
+          </div>
+        </div>
+
+        <div class="typing-indicator">
+          <span>Sara K. is typing</span>
+          <div class="typing-dots"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+
+      <div class="chat-input-area glass">
+        <div class="chat-input-row">
+          <button class="chat-emoji-btn" onclick="toggleEmoji()">😊</button>
+          <input type="text" id="chatInput" class="chat-input" placeholder="Type a message... (earn KES 100 for 10 messages)" onkeydown="if(event.key==='Enter') sendMessage()" />
+          <button class="btn-primary chat-send" onclick="sendMessage()">Send ➤</button>
+        </div>
+        <div class="emoji-picker hidden" id="emojiPicker">
+          <span onclick="addEmoji('😊')">😊</span><span onclick="addEmoji('🔥')">🔥</span>
+          <span onclick="addEmoji('💰')">💰</span><span onclick="addEmoji('✅')">✅</span>
+          <span onclick="addEmoji('🚀')">🚀</span><span onclick="addEmoji('👍')">👍</span>
+          <span onclick="addEmoji('🎉')">🎉</span><span onclick="addEmoji('💬')">💬</span>
+          <span onclick="addEmoji('🌍')">🌍</span><span onclick="addEmoji('⚡')">⚡</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel: Online Members -->
+    <aside class="chat-right glass">
+      <h4>Online Now</h4>
+      <div class="online-list">
+        <div class="online-member"><div class="avatar sm">JM</div><span>James M.</span><span class="badge-sm premium">Premium</span></div>
+        <div class="online-member"><div class="avatar sm ao">AO</div><span>Amara O.</span></div>
+        <div class="online-member"><div class="avatar sm sk">SK</div><span>Sara K.</span><span class="badge-sm top">Top</span></div>
+        <div class="online-member"><div class="avatar sm">DN</div><span>David N.</span></div>
+        <div class="online-member"><div class="avatar sm gw">GW</div><span>Grace W.</span><span class="badge-sm premium">Premium</span></div>
+        <div class="online-member"><div class="avatar sm">PK</div><span>Peter K.</span></div>
+        <div class="online-member"><div class="avatar sm">LN</div><span>Lucy N.</span></div>
+        <div class="online-member"><div class="avatar sm">MO</div><span>Mike O.</span></div>
+        <div class="online-member"><div class="avatar sm">FW</div><span>Faith W.</span></div>
+        <div class="online-member"><div class="avatar sm">RM</div><span>Ruth M.</span></div>
+      </div>
+      <div class="chat-rules">
+        <h4>Room Rules</h4>
+        <ul>
+          <li>Be respectful to all members</li>
+          <li>No spam or repeated messages</li>
+          <li>Stay on topic for task credit</li>
+          <li>No sharing personal info</li>
+        </ul>
+      </div>
+    </aside>
+
+  </div>
+</section>
+
+{{template "footer" .}}

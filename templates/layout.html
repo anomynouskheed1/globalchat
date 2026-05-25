@@ -1,0 +1,108 @@
+{{define "head"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GlobalChat — Chat, Connect & Earn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+{{end}}
+
+{{define "nav"}}
+<nav class="navbar" id="navbar">
+  <div class="nav-container">
+    <a href="/" class="nav-logo">
+      <span class="logo-icon">💬</span>
+      <span>GlobalChat</span>
+    </a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="/">Home</a></li>
+      <li class="nav-dropdown">
+        <a href="/tasks">Earn ▾</a>
+        <div class="dropdown-menu">
+          <a href="/tasks">Task Marketplace</a>
+          <a href="/survey">Live Surveys</a>
+          <a href="/screening">Quick Polls</a>
+          <a href="/rewards">My Rewards</a>
+          <a href="/leaderboard">Leaderboard</a>
+        </div>
+      </li>
+      <li><a href="/chat">Community</a></li>
+      <li><a href="/membership">Membership</a></li>
+      <li class="nav-dropdown">
+        <a href="/dashboard">Account ▾</a>
+        <div class="dropdown-menu">
+          <a href="/dashboard">Dashboard</a>
+          <a href="/wallet">Wallet</a>
+          <a href="/profile">Profile</a>
+        </div>
+      </li>
+      <li><a href="/admin">Admin</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="btn-ghost" onclick="location.href='/register'">Login</button>
+      <button class="btn-primary" onclick="location.href='/register'">Get Started</button>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+    </div>
+    <button class="hamburger" id="hamburger" aria-label="Menu">☰</button>
+  </div>
+</nav>
+{{end}}
+
+{{define "footer"}}
+<footer class="footer">
+  <div class="footer-container">
+    <div class="footer-brand">
+      <span class="logo-icon">💬</span>
+      <span class="footer-name">GlobalChat</span>
+      <p>A transparent community platform for micro-tasks and real rewards.</p>
+      <div class="footer-socials">
+        <a href="#" aria-label="Twitter">🐦</a>
+        <a href="#" aria-label="Facebook">📘</a>
+        <a href="#" aria-label="Instagram">📸</a>
+        <a href="#" aria-label="WhatsApp">💬</a>
+      </div>
+    </div>
+    <div class="footer-links">
+      <h4>Earn</h4>
+      <a href="/tasks">Task Marketplace</a>
+      <a href="/survey">Live Surveys</a>
+      <a href="/screening">Quick Polls</a>
+      <a href="/rewards">My Rewards</a>
+      <a href="/leaderboard">Leaderboard</a>
+    </div>
+    <div class="footer-links">
+      <h4>Platform</h4>
+      <a href="/chat">Community Chat</a>
+      <a href="/membership">Membership Plans</a>
+      <a href="/dashboard">Dashboard</a>
+      <a href="/wallet">Wallet</a>
+      <a href="/profile">Profile</a>
+    </div>
+    <div class="footer-links">
+      <h4>Legal</h4>
+      <a href="#">Terms of Service</a>
+      <a href="#">Privacy Policy</a>
+      <a href="#">Refund Policy</a>
+      <a href="#">Cookie Policy</a>
+    </div>
+    <div class="footer-links">
+      <h4>Support</h4>
+      <a href="#">Help Center</a>
+      <a href="#">Contact Us</a>
+      <a href="#">Report Issue</a>
+      <a href="/admin">Admin Panel</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 GlobalChat. All rights reserved. All fees and rewards are clearly disclosed. 🔒 SSL Secured · GDPR Compliant</p>
+  </div>
+</footer>
+<script src="/static/js/main.js"></script>
+</body>
+</html>
+{{end}}

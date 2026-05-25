@@ -1,0 +1,93 @@
+{{template "head" .}}
+{{template "nav" .}}
+
+<section class="screening-section">
+  <div class="section-container">
+    <div class="screening-header reveal">
+      <h2>Earn Rewards — Answer Questions</h2>
+      <p>Complete the screening below. Reward amount shown upfront. No hidden deductions.</p>
+      <div class="reward-badge">💰 This task pays: <strong>KES 150</strong></div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-bar-wrap reveal">
+      <div class="progress-labels">
+        <span>Question <span id="currentQ">1</span> of 5</span>
+        <span id="progressPct">20%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill" style="width:20%"></div>
+      </div>
+    </div>
+
+    <!-- Question Cards -->
+    <div class="question-cards">
+      <div class="q-card glass reveal active" data-q="1">
+        <span class="q-num">01</span>
+        <h3>What is your age group?</h3>
+        <div class="q-options">
+          <button class="q-opt" onclick="selectOpt(this)">18 – 24</button>
+          <button class="q-opt" onclick="selectOpt(this)">25 – 34</button>
+          <button class="q-opt" onclick="selectOpt(this)">35 – 44</button>
+          <button class="q-opt" onclick="selectOpt(this)">45+</button>
+        </div>
+      </div>
+      <div class="q-card glass reveal hidden" data-q="2">
+        <span class="q-num">02</span>
+        <h3>How often do you shop online?</h3>
+        <div class="q-options">
+          <button class="q-opt" onclick="selectOpt(this)">Daily</button>
+          <button class="q-opt" onclick="selectOpt(this)">Weekly</button>
+          <button class="q-opt" onclick="selectOpt(this)">Monthly</button>
+          <button class="q-opt" onclick="selectOpt(this)">Rarely</button>
+        </div>
+      </div>
+      <div class="q-card glass reveal hidden" data-q="3">
+        <span class="q-num">03</span>
+        <h3>Which devices do you use most?</h3>
+        <div class="q-options">
+          <button class="q-opt" onclick="selectOpt(this)">Smartphone</button>
+          <button class="q-opt" onclick="selectOpt(this)">Laptop</button>
+          <button class="q-opt" onclick="selectOpt(this)">Tablet</button>
+          <button class="q-opt" onclick="selectOpt(this)">Desktop</button>
+        </div>
+      </div>
+      <div class="q-card glass reveal hidden" data-q="4">
+        <span class="q-num">04</span>
+        <h3>What is your primary income source?</h3>
+        <div class="q-options">
+          <button class="q-opt" onclick="selectOpt(this)">Employment</button>
+          <button class="q-opt" onclick="selectOpt(this)">Business</button>
+          <button class="q-opt" onclick="selectOpt(this)">Freelance</button>
+          <button class="q-opt" onclick="selectOpt(this)">Student</button>
+        </div>
+      </div>
+      <div class="q-card glass reveal hidden" data-q="5">
+        <span class="q-num">05</span>
+        <h3>How did you hear about GlobalChat?</h3>
+        <div class="q-options">
+          <button class="q-opt" onclick="selectOpt(this)">Social Media</button>
+          <button class="q-opt" onclick="selectOpt(this)">Friend Referral</button>
+          <button class="q-opt" onclick="selectOpt(this)">Search Engine</button>
+          <button class="q-opt" onclick="selectOpt(this)">Advertisement</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="q-nav reveal">
+      <button class="btn-outline" id="prevBtn" onclick="prevQ()" disabled>← Previous</button>
+      <button class="btn-primary" id="nextBtn" onclick="nextQ()">Next →</button>
+    </div>
+
+    <!-- Completion -->
+    <div class="completion-card glass reveal hidden" id="completionCard">
+      <div class="completion-anim">🎉</div>
+      <h2>Survey Complete!</h2>
+      <p>Your reward has been added to your wallet.</p>
+      <div class="reward-credited">+ KES 150 credited</div>
+      <button class="btn-primary btn-lg" onclick="location.href='/dashboard'">Go to Dashboard →</button>
+    </div>
+  </div>
+</section>
+
+{{template "footer" .}}

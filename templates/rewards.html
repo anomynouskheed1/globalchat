@@ -1,0 +1,106 @@
+{{template "head" .}}
+{{template "nav" .}}
+
+<section class="rewards-section">
+  <div class="section-container">
+    <div class="section-header reveal">
+      <span class="section-tag">Rewards</span>
+      <h2>Claim Your Rewards</h2>
+      <p>All eligibility requirements are shown transparently below.</p>
+    </div>
+
+    <!-- Claim Progress -->
+    <div class="claim-card glass reveal">
+      <div class="claim-header">
+        <h3>Monthly Reward — KES 500 Bonus</h3>
+        <span class="claim-status pending">In Progress</span>
+      </div>
+      <div class="claim-progress">
+        <div class="progress-track">
+          <div class="progress-fill" style="width: 60%"></div>
+        </div>
+        <span>3 of 5 requirements met</span>
+      </div>
+      <div class="checklist">
+        <div class="check-item done">
+          <span class="check-icon">✅</span>
+          <div>
+            <strong>Complete 10 surveys</strong>
+            <span>Done — 12 completed</span>
+          </div>
+        </div>
+        <div class="check-item done">
+          <span class="check-icon">✅</span>
+          <div>
+            <strong>Active in community chat</strong>
+            <span>Done — 50+ messages sent</span>
+          </div>
+        </div>
+        <div class="check-item done">
+          <span class="check-icon">✅</span>
+          <div>
+            <strong>Verified phone number</strong>
+            <span>Done — Verified</span>
+          </div>
+        </div>
+        <div class="check-item pending">
+          <span class="check-icon">⏳</span>
+          <div>
+            <strong>Refer 2 friends</strong>
+            <span>1 of 2 referred</span>
+          </div>
+        </div>
+        <div class="check-item pending">
+          <span class="check-icon">⏳</span>
+          <div>
+            <strong>Premium membership active</strong>
+            <span>Upgrade to unlock</span>
+          </div>
+        </div>
+      </div>
+      <div class="claim-eta">
+        <span>⏱ Estimated processing time after claim: 24 hours</span>
+      </div>
+      <button class="btn-outline btn-full" disabled>Claim Available When All Requirements Met</button>
+    </div>
+
+    <!-- Available Rewards -->
+    <div class="rewards-grid">
+      <div class="reward-card glass reveal">
+        <div class="reward-icon">🎯</div>
+        <h3>Task Completion Bonus</h3>
+        <div class="reward-amount">KES 100</div>
+        <p>Complete any 5 tasks this week</p>
+        <div class="reward-progress">
+          <div class="progress-track"><div class="progress-fill" style="width:80%"></div></div>
+          <span>4/5 tasks done</span>
+        </div>
+        <button class="btn-sm btn-primary" onclick="location.href='/screening'">Complete 1 More</button>
+      </div>
+      <div class="reward-card glass reveal">
+        <div class="reward-icon">👥</div>
+        <h3>Referral Reward</h3>
+        <div class="reward-amount">KES 50 / referral</div>
+        <p>Earn for every friend who joins and completes a task</p>
+        <div class="reward-progress">
+          <div class="progress-track"><div class="progress-fill" style="width:40%"></div></div>
+          <span>2 referrals this month</span>
+        </div>
+        <button class="btn-sm btn-primary" onclick="location.href='/dashboard'">Share Link</button>
+      </div>
+      <div class="reward-card glass reveal">
+        <div class="reward-icon">🏆</div>
+        <h3>Top Earner Bonus</h3>
+        <div class="reward-amount">KES 1,000</div>
+        <p>Finish in the top 10 earners this month</p>
+        <div class="reward-progress">
+          <div class="progress-track"><div class="progress-fill" style="width:30%"></div></div>
+          <span>Rank #34 this month</span>
+        </div>
+        <button class="btn-sm btn-outline">View Leaderboard</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+{{template "footer" .}}
