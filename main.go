@@ -14,21 +14,11 @@ import (
 var templates *template.Template
 
 func init() {
+    err := godotenv.Load()
 
-	// Load environment variables
-	err := if os.Getenv("GO_ENV") != "production" {
-    godotenv.Load()
-}()
-
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
-	templates = template.Must(
-		template.ParseGlob(
-			filepath.Join("templates", "*.html"),
-		),
-	)
+    if err != nil {
+        log.Println("No .env file found, running in production mode")
+    }
 }
 
 func render(w http.ResponseWriter, tmpl string, data interface{}) {
