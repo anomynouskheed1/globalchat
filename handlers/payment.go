@@ -16,18 +16,13 @@ type PaymentRequest struct {
 	Plan   string `json:"plan"`
 }
 
-// INTASEND RESPONSE
 type IntaSendResponse struct {
 	Invoice struct {
 		InvoiceID string `json:"invoice_id"`
 		State     string `json:"state"`
 	} `json:"invoice"`
-
-	InvoiceID string `json:"invoice_id"`
-	State     string `json:"state"`
 }
 
-// WEBHOOK PAYLOAD
 type WebhookPayload struct {
 	InvoiceID string `json:"invoice_id"`
 	State     string `json:"state"`
@@ -35,6 +30,9 @@ type WebhookPayload struct {
 	Challenge string `json:"challenge"`
 }
 
+// -------------------------
+// STK PUSH HANDLER
+// -------------------------
 func MpesaPaymentHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -42,192 +40,131 @@ func MpesaPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// PARSE REQUEST
 	var req PaymentRequest
-
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	// FORMAT PHONE
+	// -------------------------
+	// PHONE FORMAT (CRITICAL)
+	// -------------------------
 	phone := strings.TrimSpace(req.Phone)
 	phone = strings.ReplaceAll(phone, " ", "")
 
-	if strings.HasPrefix(phone, "+254") {
+	if strings.HasPrefix(phone, "+") {
 		phone = strings.Replace(phone, "+", "", 1)
 	}
-
 	if strings.HasPrefix(phone, "07") {
 		phone = "254" + phone[1:]
 	}
 
 	log.Println("FORMATTED PHONE:", phone)
 
-	// INTASEND PAYLOAD
+	// -------------------------
+	// ENV CHECK
+	// -------------------------
+	publicKey := os.Getenv("INTASEND_PUBLIC_KEY")
+	secretKey := os.Getenv("INTASEND_SECRET_KEY")
+
+	if publicKey == "" || secretKey == "" {
+		log.Println("Missing IntaSend keys")
+		http.Error(w, "Payment not configured", http.StatusInternalServerError)
+		return
+	}
+
+	// -------------------------
+	// CLEAN LIVE PAYLOAD
+	// -------------------------
 	payload := map[string]interface{}{
-		"public_key":   os.Getenv("INTASEND_PUBLIC_KEY"),
-		"currency":     "KES",
-		"method":       "M-PESA",
+		"public_key":   publicKey,
 		"amount":       req.Amount,
+		"currency":     "KES",
 		"phone_number": phone,
 		"api_ref":      "GLOBALCHAT_MEMBERSHIP",
 		"name":         "GlobalChat User",
 		"email":        "customer@globalchat.com",
 	}
 
-	jsonPayload, err := json.Marshal(payload)
+	bodyBytes, _ := json.Marshal(payload)
+
+	// -------------------------
+	// LIVE ENDPOINT
+	// -------------------------
+	url := "https://payment.intasend.com/api/v1/payment/mpesa-stk-push/"
+
+	reqHttp, err := http.NewRequest("POST", url, bytes.NewBuffer(bodyBytes))
 	if err != nil {
-		http.Error(w, "Failed to create payload", http.StatusInternalServerError)
+		http.Error(w, "Request error", http.StatusInternalServerError)
 		return
 	}
 
-	// LIVE INTASEND API
-	request, err := http.NewRequest(
-		"POST",
-		"https://payment.intasend.com/api/v1/payment/mpesa-stk-push/",
-		bytes.NewBuffer(jsonPayload),
-	)
+	reqHttp.Header.Set("Content-Type", "application/json")
+	reqHttp.Header.Set("Authorization", "Bearer "+secretKey)
 
-	if err != nil {
-		http.Error(w, "Failed to create request", http.StatusInternalServerError)
-		return
-	}
-
-	// HEADERS
-	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Authorization", "Bearer "+os.Getenv("INTASEND_SECRET_KEY"))
-
-	// SEND REQUEST
 	client := &http.Client{}
-
-	response, err := client.Do(request)
+	resp, err := client.Do(reqHttp)
 	if err != nil {
-		log.Println("INTASEND CONNECTION ERROR:", err)
-		http.Error(w, "Failed to contact IntaSend", http.StatusInternalServerError)
+		log.Println("STK REQUEST FAILED:", err)
+		http.Error(w, "Payment gateway error", http.StatusInternalServerError)
 		return
 	}
+	defer resp.Body.Close()
 
-	defer response.Body.Close()
+	responseBody, _ := io.ReadAll(resp.Body)
 
-	// READ RESPONSE
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		http.Error(w, "Failed to read response", http.StatusInternalServerError)
-		return
-	}
+	log.Println("INTASEND STATUS:", resp.StatusCode)
+	log.Println("INTASEND RESPONSE:", string(responseBody))
 
-	// DEBUG RESPONSE
-	log.Println("RAW RESPONSE:", string(body))
+	// -------------------------
+	// RESPONSE PARSE
+	// -------------------------
+	var data IntaSendResponse
+	_ = json.Unmarshal(responseBody, &data)
 
-	// PARSE RESPONSE
-	var intasendData IntaSendResponse
+	invoiceID := data.Invoice.InvoiceID
+	state := data.Invoice.State
 
-	err = json.Unmarshal(body, &intasendData)
-	if err != nil {
-		log.Println("JSON PARSE ERROR:", err)
-
-		http.Error(
-			w,
-			"Invalid response from payment gateway",
-			http.StatusInternalServerError,
-		)
-
-		return
-	}
-
-	// HANDLE BOTH RESPONSE FORMATS
-	invoiceID := intasendData.Invoice.InvoiceID
-	state := intasendData.Invoice.State
-
-	if invoiceID == "" {
-		invoiceID = intasendData.InvoiceID
-	}
-
-	if state == "" {
-		state = intasendData.State
-	}
-
-	log.Printf(
-		"STK Push initiated! Invoice: %s, State: %s\n",
-		invoiceID,
-		state,
-	)
-
-	// FRONTEND RESPONSE
-	frontendResponse := map[string]interface{}{
+	// -------------------------
+	// CLEAN RESPONSE TO FRONTEND
+	// -------------------------
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success":    true,
-		"message":    "STK push sent! Please check your phone and enter PIN.",
+		"message":    "M-Pesa prompt sent. Check your phone.",
 		"invoice_id": invoiceID,
 		"status":     state,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	json.NewEncoder(w).Encode(frontendResponse)
+	})
 }
 
-// WEBHOOK HANDLER
+// -------------------------
+// WEBHOOK
+// -------------------------
 func IntaSendWebhookHandler(w http.ResponseWriter, r *http.Request) {
 
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
+	body, _ := io.ReadAll(r.Body)
 
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
-		return
-	}
-
-	log.Println("WEBHOOK RAW:", string(body))
+	log.Println("WEBHOOK:", string(body))
 
 	var payload WebhookPayload
-
-	err = json.Unmarshal(body, &payload)
-	if err != nil {
+	if err := json.Unmarshal(body, &payload); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	// INTASEND CHALLENGE VERIFICATION
 	if payload.Challenge != "" {
-
-		w.Header().Set("Content-Type", "application/json")
-
 		json.NewEncoder(w).Encode(map[string]string{
 			"challenge": payload.Challenge,
 		})
-
 		return
 	}
 
-	log.Printf(
-		"Webhook received! Invoice: %s is now %s\n",
-		payload.InvoiceID,
-		payload.State,
-	)
+	if payload.State == "COMPLETED" || payload.State == "COMPLETE" {
+		log.Println("PAYMENT SUCCESS:", payload.InvoiceID)
 
-	// PAYMENT SUCCESS
-	if payload.State == "COMPLETE" ||
-		payload.State == "COMPLETED" {
-
-		log.Printf(
-			"💰 PAYMENT VERIFIED! Amount KES %s for Invoice %s\n",
-			payload.Value,
-			payload.InvoiceID,
-		)
-
-		/*
-		   TODO:
-		   ACTIVATE USER MEMBERSHIP HERE
-
-		   Example:
-		   UPDATE users SET membership = true WHERE invoice_id = payload.InvoiceID
-		*/
+		// TODO:
+		// activate membership
+		// credit wallet
 	}
 
 	w.WriteHeader(http.StatusOK)
