@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/joho/godotenv"
 
@@ -12,38 +13,39 @@ import (
 
 var templates *template.Template
 
-func init() {
-    err := godotenv.Load()
-
-    if err != nil {
-        log.Println("No .env file found, running in production mode")
-    }
+// LOAD TEMPLATES
+func loadTemplates() {
+	templates = template.Must(template.ParseGlob("templates/*.html"))
 }
 
+// RENDER FUNCTION
 func render(w http.ResponseWriter, tmpl string, data interface{}) {
-
 	err := templates.ExecuteTemplate(w, tmpl, data)
 
 	if err != nil {
-		http.Error(
-			w,
-			err.Error(),
-			http.StatusInternalServerError,
-		)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Println("Template render error:", err)
+	}
+}
+
+// INIT ENV (SAFE FOR PROD)
+func init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("No .env file found, running in production mode")
 	}
 }
 
 func main() {
 
-	// Static files
+	// LOAD TEMPLATES FIRST (VERY IMPORTANT)
+	loadTemplates()
+
+	// STATIC FILES
 	fs := http.FileServer(http.Dir("static"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	http.Handle(
-		"/static/",
-		http.StripPrefix("/static/", fs),
-	)
-
-	// Pages
+	// PAGES
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		render(w, "index.html", nil)
 	})
@@ -99,9 +101,15 @@ func main() {
 	// PAYMENT ROUTE
 	http.HandleFunc("/pay/mpesa", handlers.MpesaPaymentHandler)
 
-	log.Println("GlobalChat running on http://localhost:8080")
+	// PORT (RENDER SAFE)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Println("GlobalChat running on port", port)
 
 	log.Fatal(
-		http.ListenAndServe(":8080", nil),
+		http.ListenAndServe(":"+port, nil),
 	)
 }
