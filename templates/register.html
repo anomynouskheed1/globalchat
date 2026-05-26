@@ -3,7 +3,9 @@
 
 <section class="auth-section">
   <div class="auth-container reveal">
+
     <div class="auth-card glass">
+
       <div class="auth-header">
         <span class="logo-icon">💬</span>
         <h2>Join GlobalChat</h2>
@@ -11,60 +13,99 @@
       </div>
 
       <div class="auth-tabs">
-        <button class="auth-tab active" onclick="switchTab('signup', this)">Sign Up</button>
-        <button class="auth-tab" onclick="switchTab('login', this)">Login</button>
+        <button class="auth-tab active" onclick="switchTab('signup', this)">
+          Sign Up
+        </button>
+
+        <button class="auth-tab" onclick="switchTab('login', this)">
+          Login
+        </button>
       </div>
 
-      <!-- SIGN UP -->
-      <form class="auth-form" id="signup" onsubmit="handleAuth(event)">
+      <!-- SIGNUP -->
+      <form class="auth-form" id="signup" onsubmit="startScreening(event)">
+
         <div class="form-group">
           <label>Full Name</label>
-          <input type="text" placeholder="Your full name" required />
+          <input type="text" id="fullname" placeholder="Your full name" required />
         </div>
+
         <div class="form-group">
           <label>Email Address</label>
-          <input type="email" placeholder="you@example.com" required />
+          <input type="email" id="email" placeholder="you@example.com" required />
         </div>
+
         <div class="form-group">
           <label>Phone (M-Pesa)</label>
-          <input type="tel" placeholder="+254 7XX XXX XXX" />
+          <input type="tel" id="phone" placeholder="0712345678" required />
         </div>
+
         <div class="form-group">
           <label>Password</label>
-          <input type="password" placeholder="Min. 8 characters" required />
+          <input type="password" id="password" placeholder="Min. 8 characters" required />
         </div>
+
         <div class="form-check">
           <input type="checkbox" id="terms" required />
-          <label for="terms">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></label>
+
+          <label for="terms">
+            I agree to the
+            <a href="#">Terms of Service</a>
+            and
+            <a href="#">Privacy Policy</a>
+          </label>
         </div>
-        <button type="submit" class="btn-primary btn-full">Create Free Account</button>
-        <div class="divider"><span>or continue with</span></div>
+
+        <button type="submit" class="btn-primary btn-full">
+          Continue To Screening →
+        </button>
+
+        <div class="divider">
+          <span>or continue with</span>
+        </div>
+
         <div class="social-btns">
-          <button type="button" class="btn-social">🔵 Google</button>
-          <button type="button" class="btn-social">📘 Facebook</button>
+          <button type="button" class="btn-social">
+            🔵 Google
+          </button>
+
+          <button type="button" class="btn-social">
+            📘 Facebook
+          </button>
         </div>
+
       </form>
 
       <!-- LOGIN -->
-      <form class="auth-form hidden" id="login" onsubmit="handleAuth(event)">
+      <form class="auth-form hidden" id="login" onsubmit="loginUser(event)">
+
         <div class="form-group">
           <label>Email Address</label>
-          <input type="email" placeholder="you@example.com" required />
+          <input type="email" id="loginEmail" placeholder="you@example.com" required />
         </div>
+
         <div class="form-group">
           <label>Password</label>
-          <input type="password" placeholder="Your password" required />
+          <input type="password" id="loginPassword" placeholder="Your password" required />
         </div>
+
         <div class="form-row-between">
-          <label class="form-check"><input type="checkbox" /> Remember me</label>
-          <a href="#" class="link-small">Forgot password?</a>
+
+          <label class="form-check">
+            <input type="checkbox" />
+            Remember me
+          </label>
+
+          <a href="#" class="link-small">
+            Forgot password?
+          </a>
+
         </div>
-        <button type="submit" class="btn-primary btn-full">Login</button>
-        <div class="divider"><span>or continue with</span></div>
-        <div class="social-btns">
-          <button type="button" class="btn-social">🔵 Google</button>
-          <button type="button" class="btn-social">📘 Facebook</button>
-        </div>
+
+        <button type="submit" class="btn-primary btn-full">
+          Login
+        </button>
+
       </form>
 
       <div class="security-badges">
@@ -72,8 +113,209 @@
         <span>✅ Verified Platform</span>
         <span>🛡️ GDPR Compliant</span>
       </div>
+
     </div>
+
   </div>
 </section>
+
+<script>
+
+  function switchTab(tabId, button) {
+
+    document.querySelectorAll(".auth-form").forEach(form => {
+      form.classList.add("hidden");
+    });
+
+    document.getElementById(tabId).classList.remove("hidden");
+
+    document.querySelectorAll(".auth-tab").forEach(tab => {
+      tab.classList.remove("active");
+    });
+
+    button.classList.add("active");
+  }
+
+  function startScreening(event) {
+
+    event.preventDefault();
+
+    const fullName = document.getElementById("fullname").value;
+    const email = document.getElementById("email").value;
+    const phone = document.getElementById("phone").value;
+    const password = document.getElementById("password").value;
+
+    // SAVE TEMP USER
+    const userData = {
+      fullName,
+      email,
+      phone,
+      password,
+      reward: 0,
+      membership: "Free"
+    };
+
+    localStorage.setItem(
+      "globalchat_user",
+      JSON.stringify(userData)
+    );
+
+    // REDIRECT TO SCREENING
+    window.location.href = "/screening";
+  }
+
+  function loginUser(event) {
+
+    event.preventDefault();
+
+    const email = document.getElementById("loginEmail").value;
+    const password = document.getElementById("loginPassword").value;
+
+    const savedUser = JSON.parse(
+      localStorage.getItem("globalchat_user")
+    );
+
+    if (!savedUser) {
+
+      alert("No account found");
+      return;
+    }
+
+    if (
+      savedUser.email === email &&
+      savedUser.password === password
+    ) {
+
+      alert("Login successful");
+
+      window.location.href = "/dashboard";
+
+    } else {
+
+      alert("Invalid email or password");
+    }
+  }
+
+</script>
+
+<style>
+  .auth-section {
+    padding: 80px 20px;
+  }
+
+  .auth-container {
+    max-width: 480px;
+    margin: auto;
+  }
+
+  .auth-card {
+    padding: 40px;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+  }
+
+  .auth-header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+
+  .logo-icon {
+    font-size: 42px;
+  }
+
+  .auth-tabs {
+    display: flex;
+    margin-bottom: 30px;
+    gap: 10px;
+  }
+
+  .auth-tab {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    background: #1e1e1e;
+    color: white;
+  }
+
+  .auth-tab.active {
+    background: #00b894;
+  }
+
+  .auth-form.hidden {
+    display: none;
+  }
+
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid #333;
+    background: #111;
+    color: white;
+  }
+
+  .form-check {
+    margin-bottom: 20px;
+    font-size: 14px;
+  }
+
+  .btn-primary {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: #00b894;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  .social-btns {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .btn-social {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+  }
+
+  .divider {
+    text-align: center;
+    margin: 20px 0;
+    color: #aaa;
+  }
+
+  .form-row-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .security-badges {
+    margin-top: 30px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 13px;
+  }
+</style>
 
 {{template "footer" .}}
