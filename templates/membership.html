@@ -12,8 +12,6 @@
 
     <div class="pricing-grid">
 
-
-
       <!-- PREMIUM PLAN -->
       <div class="pricing-card glass reveal featured">
 
@@ -111,11 +109,9 @@
         </p>
 
         <div class="payment-tabs">
-
           <button class="pay-tab active">
             📱 M-Pesa
           </button>
-
         </div>
 
         <!-- MPESA FORM -->
@@ -133,16 +129,17 @@
           </p>
 
           <button class="btn-primary btn-full" onclick="payMpesa()">
-
             Send STK Push
-
           </button>
+
+          <!-- STATUS MESSAGE -->
+          <div id="paymentStatus"></div>
 
         </div>
 
         <div class="security-badges">
           <span>🔒 Secure Payment</span>
-          <span>✅ Paystack Protected</span>
+          <span>✅ IntaSend Protected</span>
           <span>🛡️ M-Pesa STK Push</span>
         </div>
 
@@ -152,6 +149,7 @@
 
   </div>
 </section>
+
 <script>
 
   let selectedAmount = 99;
@@ -179,25 +177,44 @@
 
     let phone = document.getElementById("phone").value;
 
-    // Remove spaces
+    const statusBox = document.getElementById("paymentStatus");
+
+    // CLEAR OLD MESSAGE
+    statusBox.innerHTML = "";
+
+    // REMOVE SPACES
     phone = phone.replace(/\s/g, '');
 
-    // Convert +254
+    // CONVERT +254
     if (phone.startsWith("+254")) {
       phone = phone.replace("+", "");
     }
 
-    // Convert 0712345678
+    // CONVERT 07XXXXXXXX
     if (phone.startsWith("07")) {
       phone = "254" + phone.substring(1);
     }
 
     console.log("Formatted Phone:", phone);
 
-    if (!phone) {
-      alert("Enter phone number");
+    // VALIDATION
+    if (!phone || phone.length < 12) {
+
+      statusBox.innerHTML = `
+        <div class="payment-error">
+          ❌ Enter a valid Safaricom number
+        </div>
+      `;
+
       return;
     }
+
+    // LOADING
+    statusBox.innerHTML = `
+      <div class="payment-loading">
+        ⏳ Sending STK Push...
+      </div>
+    `;
 
     try {
 
@@ -221,20 +238,33 @@
 
       console.log("PAYMENT RESPONSE:", data);
 
-      if (data.status === true || data.success === true) {
+      if (data.success === true) {
 
-        alert("STK Push sent successfully!");
+        statusBox.innerHTML = `
+          <div class="payment-success">
+            ✅ STK Push sent successfully.<br><br>
+            Check your phone and enter your M-Pesa PIN.
+          </div>
+        `;
 
       } else {
 
-        alert(JSON.stringify(data));
+        statusBox.innerHTML = `
+          <div class="payment-error">
+            ❌ Payment failed. Please try again.
+          </div>
+        `;
       }
 
     } catch (error) {
 
       console.log(error);
 
-      alert("Server error occurred");
+      statusBox.innerHTML = `
+        <div class="payment-error">
+          ❌ Server error occurred.
+        </div>
+      `;
     }
   }
 
@@ -322,7 +352,6 @@
   }
 
   .btn-outline {
-
     border: 1px solid;
     background: #00b894;
     color: white;
@@ -388,6 +417,39 @@
     gap: 10px;
     flex-wrap: wrap;
     font-size: 13px;
+  }
+
+  .payment-success {
+    background: rgba(0, 184, 148, 0.15);
+    border: 1px solid #00b894;
+    color: #00e6b8;
+    padding: 14px;
+    border-radius: 12px;
+    margin-top: 15px;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .payment-error {
+    background: rgba(255, 77, 79, 0.12);
+    border: 1px solid #ff4d4f;
+    color: #ff7b7b;
+    padding: 14px;
+    border-radius: 12px;
+    margin-top: 15px;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .payment-loading {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid #444;
+    color: #fff;
+    padding: 14px;
+    border-radius: 12px;
+    margin-top: 15px;
+    text-align: center;
+    font-weight: 600;
   }
 </style>
 
