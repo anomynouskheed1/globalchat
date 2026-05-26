@@ -100,7 +100,7 @@ func main() {
 
 	// PAYMENT ROUTE
 	http.HandleFunc("/pay/mpesa", handlers.MpesaPaymentHandler)
-
+http.HandleFunc("/webhook/intasend", handlers.IntaSendWebhookHandler)
 	// PORT (RENDER SAFE)
 	port := os.Getenv("PORT")
 	if port == "" {
