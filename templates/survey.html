@@ -1,0 +1,239 @@
+{{template "head" .}}
+{{template "nav" .}}
+
+<section class="survey-section">
+  <div class="survey-container">
+
+    <!-- Survey Header -->
+    <div class="survey-hero glass reveal">
+      <div class="survey-hero-info">
+        <span class="tc-cat survey">Survey</span>
+        <h2>Mobile App User Experience</h2>
+        <p>Rate and review your experience with popular mobile apps. Your feedback helps improve products used by millions.</p>
+        <div class="survey-meta-row">
+          <span>⏱ ~10 minutes</span>
+          <span>❓ 15 questions</span>
+          <span>👥 1,892 completed</span>
+          <span>🔒 Anonymous</span>
+        </div>
+      </div>
+      <div class="survey-reward-box">
+        <span>Your Reward</span>
+        <strong>KES 300</strong>
+        <small>Credited instantly on completion</small>
+        <div class="reward-breakdown">
+          <div class="rb-row"><span>Base reward</span><span>KES 250</span></div>
+          <div class="rb-row"><span>Completion bonus</span><span>KES 50</span></div>
+          <div class="rb-row total"><span>Total</span><span>KES 300</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="survey-progress reveal">
+      <div class="sp-labels">
+        <span>Question <span id="sqNum">1</span> of 15</span>
+        <span id="spPct">7%</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="spFill" style="width:7%"></div></div>
+      <div class="sp-steps">
+        <span class="sp-step active">Intro</span>
+        <span class="sp-step">Usage</span>
+        <span class="sp-step">Rating</span>
+        <span class="sp-step">Feedback</span>
+        <span class="sp-step">Done</span>
+      </div>
+    </div>
+
+    <!-- Questions -->
+    <div class="survey-questions" id="surveyQuestions">
+
+      <div class="sq-card glass reveal active" data-sq="1">
+        <span class="q-num">01 / 15</span>
+        <h3>Which mobile operating system do you primarily use?</h3>
+        <div class="q-options">
+          <button class="q-opt" onclick="selectOpt(this)">📱 Android</button>
+          <button class="q-opt" onclick="selectOpt(this)">🍎 iOS (iPhone)</button>
+          <button class="q-opt" onclick="selectOpt(this)">📟 KaiOS / Feature Phone</button>
+          <button class="q-opt" onclick="selectOpt(this)">💻 I use desktop primarily</button>
+        </div>
+      </div>
+
+      <div class="sq-card glass reveal hidden" data-sq="2">
+        <span class="q-num">02 / 15</span>
+        <h3>How many apps do you use on a daily basis?</h3>
+        <div class="q-options">
+          <button class="q-opt" onclick="selectOpt(this)">1 – 3 apps</button>
+          <button class="q-opt" onclick="selectOpt(this)">4 – 7 apps</button>
+          <button class="q-opt" onclick="selectOpt(this)">8 – 15 apps</button>
+          <button class="q-opt" onclick="selectOpt(this)">More than 15 apps</button>
+        </div>
+      </div>
+
+      <div class="sq-card glass reveal hidden" data-sq="3">
+        <span class="q-num">03 / 15</span>
+        <h3>Which category of apps do you use most?</h3>
+        <div class="q-options q-options-3">
+          <button class="q-opt" onclick="selectOpt(this)">💬 Social Media</button>
+          <button class="q-opt" onclick="selectOpt(this)">💰 Finance / Banking</button>
+          <button class="q-opt" onclick="selectOpt(this)">🛒 Shopping</button>
+          <button class="q-opt" onclick="selectOpt(this)">🎮 Gaming</button>
+          <button class="q-opt" onclick="selectOpt(this)">📺 Entertainment</button>
+          <button class="q-opt" onclick="selectOpt(this)">🏥 Health & Fitness</button>
+        </div>
+      </div>
+
+      <div class="sq-card glass reveal hidden" data-sq="4">
+        <span class="q-num">04 / 15</span>
+        <h3>How would you rate the overall quality of apps available in your country's app store?</h3>
+        <div class="rating-stars" id="ratingStars">
+          <button class="star-btn" onclick="rateStar(1)">★</button>
+          <button class="star-btn" onclick="rateStar(2)">★</button>
+          <button class="star-btn" onclick="rateStar(3)">★</button>
+          <button class="star-btn" onclick="rateStar(4)">★</button>
+          <button class="star-btn" onclick="rateStar(5)">★</button>
+        </div>
+        <p class="rating-label" id="ratingLabel">Tap a star to rate</p>
+      </div>
+
+      <div class="sq-card glass reveal hidden" data-sq="5">
+        <span class="q-num">05 / 15</span>
+        <h3>What is the biggest frustration you face with mobile apps?</h3>
+        <div class="q-options">
+          <button class="q-opt" onclick="selectOpt(this)">Too many ads</button>
+          <button class="q-opt" onclick="selectOpt(this)">Slow performance</button>
+          <button class="q-opt" onclick="selectOpt(this)">Privacy concerns</button>
+          <button class="q-opt" onclick="selectOpt(this)">Too expensive / paywalls</button>
+        </div>
+      </div>
+
+      <!-- Questions 6-15 collapsed for brevity — shown as a single "remaining" block -->
+      <div class="sq-card glass reveal hidden" data-sq="6">
+        <span class="q-num">06 / 15</span>
+        <h3>Do you read app reviews before downloading?</h3>
+        <div class="q-options">
+          <button class="q-opt" onclick="selectOpt(this)">Always</button>
+          <button class="q-opt" onclick="selectOpt(this)">Sometimes</button>
+          <button class="q-opt" onclick="selectOpt(this)">Rarely</button>
+          <button class="q-opt" onclick="selectOpt(this)">Never</button>
+        </div>
+      </div>
+
+      <div class="sq-card glass reveal hidden" data-sq="7">
+        <span class="q-num">07 / 15</span>
+        <h3>How much do you spend on in-app purchases per month?</h3>
+        <div class="q-options">
+          <button class="q-opt" onclick="selectOpt(this)">Nothing — I use free apps only</button>
+          <button class="q-opt" onclick="selectOpt(this)">KES 1 – 500</button>
+          <button class="q-opt" onclick="selectOpt(this)">KES 501 – 2,000</button>
+          <button class="q-opt" onclick="selectOpt(this)">More than KES 2,000</button>
+        </div>
+      </div>
+
+      <div class="sq-card glass reveal hidden" data-sq="8">
+        <span class="q-num">08 / 15</span>
+        <h3>Which payment method do you prefer for in-app purchases?</h3>
+        <div class="q-options">
+          <button class="q-opt" onclick="selectOpt(this)">📱 M-Pesa</button>
+          <button class="q-opt" onclick="selectOpt(this)">💳 Debit/Credit Card</button>
+          <button class="q-opt" onclick="selectOpt(this)">🏦 Bank Transfer</button>
+          <button class="q-opt" onclick="selectOpt(this)">🎁 Gift Cards / Vouchers</button>
+        </div>
+      </div>
+
+      <div class="sq-card glass reveal hidden" data-sq="9">
+        <span class="q-num">09 / 15</span>
+        <h3>How important is offline functionality to you?</h3>
+        <div class="q-options">
+          <button class="q-opt" onclick="selectOpt(this)">Very important — I have limited data</button>
+          <button class="q-opt" onclick="selectOpt(this)">Somewhat important</button>
+          <button class="q-opt" onclick="selectOpt(this)">Not important</button>
+          <button class="q-opt" onclick="selectOpt(this)">I always have good internet</button>
+        </div>
+      </div>
+
+      <div class="sq-card glass reveal hidden" data-sq="10">
+        <span class="q-num">10 / 15</span>
+        <h3>Have you ever uninstalled an app due to privacy concerns?</h3>
+        <div class="q-options">
+          <button class="q-opt" onclick="selectOpt(this)">Yes, multiple times</button>
+          <button class="q-opt" onclick="selectOpt(this)">Yes, once or twice</button>
+          <button class="q-opt" onclick="selectOpt(this)">No, but I've considered it</button>
+          <button class="q-opt" onclick="selectOpt(this)">No, I don't worry about that</button>
+        </div>
+      </div>
+
+      <div class="sq-card glass reveal hidden" data-sq="11">
+        <span class="q-num">11 / 15</span>
+        <h3>What screen size do you prefer for app usage?</h3>
+        <div class="q-options">
+          <button class="q-opt" onclick="selectOpt(this)">Small (under 5 inches)</button>
+          <button class="q-opt" onclick="selectOpt(this)">Medium (5–6 inches)</button>
+          <button class="q-opt" onclick="selectOpt(this)">Large (6+ inches)</button>
+          <button class="q-opt" onclick="selectOpt(this)">Tablet size</button>
+        </div>
+      </div>
+
+      <div class="sq-card glass reveal hidden" data-sq="12">
+        <span class="q-num">12 / 15</span>
+        <h3>How often do you update your apps?</h3>
+        <div class="q-options">
+          <button class="q-opt" onclick="selectOpt(this)">Immediately when available</button>
+          <button class="q-opt" onclick="selectOpt(this)">Weekly</button>
+          <button class="q-opt" onclick="selectOpt(this)">Monthly</button>
+          <button class="q-opt" onclick="selectOpt(this)">Rarely / Never</button>
+        </div>
+      </div>
+
+      <div class="sq-card glass reveal hidden" data-sq="13">
+        <span class="q-num">13 / 15</span>
+        <h3>Do you prefer dark mode or light mode in apps?</h3>
+        <div class="q-options">
+          <button class="q-opt" onclick="selectOpt(this)">🌙 Dark mode always</button>
+          <button class="q-opt" onclick="selectOpt(this)">☀️ Light mode always</button>
+          <button class="q-opt" onclick="selectOpt(this)">🔄 Auto (follows system)</button>
+          <button class="q-opt" onclick="selectOpt(this)">Depends on the app</button>
+        </div>
+      </div>
+
+      <div class="sq-card glass reveal hidden" data-sq="14">
+        <span class="q-num">14 / 15</span>
+        <h3>Would you recommend GlobalChat to a friend?</h3>
+        <div class="q-options">
+          <button class="q-opt" onclick="selectOpt(this)">Definitely yes!</button>
+          <button class="q-opt" onclick="selectOpt(this)">Probably yes</button>
+          <button class="q-opt" onclick="selectOpt(this)">Not sure yet</button>
+          <button class="q-opt" onclick="selectOpt(this)">Probably not</button>
+        </div>
+      </div>
+
+      <div class="sq-card glass reveal hidden" data-sq="15">
+        <span class="q-num">15 / 15</span>
+        <h3>Any additional feedback about your app experience? (Optional)</h3>
+        <textarea class="survey-textarea" placeholder="Share any thoughts, suggestions, or experiences you'd like us to know about..."></textarea>
+        <p class="optional-note">This question is optional. You can skip it.</p>
+      </div>
+
+    </div>
+
+    <div class="sq-nav reveal" id="sqNav">
+      <button class="btn-outline" id="sqPrev" onclick="prevSQ()" disabled>← Previous</button>
+      <button class="btn-primary" id="sqNext" onclick="nextSQ()">Next →</button>
+    </div>
+
+    <!-- Completion -->
+    <div class="survey-complete glass reveal hidden" id="surveyComplete">
+      <div class="completion-anim">🎉</div>
+      <h2>Survey Complete!</h2>
+      <p>Thank you for your valuable feedback. Your reward has been credited.</p>
+      <div class="reward-credited">+ KES 300 credited to your wallet</div>
+      <div class="completion-actions">
+        <button class="btn-primary btn-lg" onclick="location.href='/dashboard'">Go to Dashboard →</button>
+        <button class="btn-outline btn-lg" onclick="location.href='/tasks'">Do Another Task</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+{{template "footer" .}}
