@@ -55,7 +55,7 @@ func MpesaPaymentHandler(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(phone, "+") {
 		phone = strings.Replace(phone, "+", "", 1)
 	}
-	if strings.HasPrefix(phone, "07") {
+	if strings.HasPrefix(phone, "07") || strings.HasPrefix(phone, "01") {
 		phone = "254" + phone[1:]
 	}
 
