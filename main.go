@@ -191,6 +191,7 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 
 	cloudPayURL := "https://pay.cloud.or.ke/api/payments/mpesa/stkpush"
 
+	// Make sure "POST" is explicitly specified here
 	reqHttp, err := http.NewRequest("POST", cloudPayURL, bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
