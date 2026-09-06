@@ -27,7 +27,6 @@ func loadTemplates() {
 }
 
 func renderPage(w http.ResponseWriter, tmplName string, data interface{}) {
-	// Try rendering through globally loaded templates
 	if templates != nil {
 		err := templates.ExecuteTemplate(w, tmplName, data)
 		if err == nil {
@@ -35,7 +34,6 @@ func renderPage(w http.ResponseWriter, tmplName string, data interface{}) {
 		}
 	}
 
-	// Fallback: Parse file dynamically from disk if ExecuteTemplate fails
 	filePath := filepath.Join("templates", tmplName)
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		http.Error(w, fmt.Sprintf("Template file not found: %s", tmplName), http.StatusNotFound)
@@ -48,7 +46,6 @@ func renderPage(w http.ResponseWriter, tmplName string, data interface{}) {
 		return
 	}
 
-	// Execute parsed template file directly
 	filename := filepath.Base(filePath)
 	if err := t.ExecuteTemplate(w, filename, data); err != nil {
 		_ = t.Execute(w, data)
@@ -283,10 +280,9 @@ func main() {
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	// Root Landing Handler
+	// Catch-all route for pages (e.g., /wallet -> wallet.html)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
-			// Serve matching template filename (e.g. /wallet -> wallet.html, /tasks -> tasks.html)
 			tmplName := strings.TrimPrefix(r.URL.Path, "/")
 			if !strings.HasSuffix(tmplName, ".html") {
 				tmplName += ".html"
@@ -297,25 +293,23 @@ func main() {
 		renderPage(w, "index.html", nil)
 	})
 
-	// Registration Route: POST redirects to screening
+	// /register and /login both use register.html template
 	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			_ = r.ParseForm()
-			// Redirect user directly to screening upon submitting registration
 			http.Redirect(w, r, "/screening", http.StatusSeeOther)
 			return
 		}
 		renderPage(w, "register.html", nil)
 	})
 
-	// Login Route: POST redirects to dashboard
 	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			_ = r.ParseForm()
 			http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 			return
 		}
-		renderPage(w, "login.html", nil)
+		renderPage(w, "register.html", nil)
 	})
 
 	http.HandleFunc("/screening", func(w http.ResponseWriter, r *http.Request) {
