@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"globalchat/db" // Adjust if your module name in go.mod is different
+	"globalchat/db"
 )
 
 type PaymentRequest struct {
@@ -42,7 +42,7 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Method not allowed"})
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Method not allowed"})
 		return
 	}
 
@@ -50,21 +50,21 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("gc_session")
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Unauthorized session"})
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Unauthorized session"})
 		return
 	}
 
 	user, err := db.GetSessionUser(cookie.Value)
 	if err != nil || user == nil {
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Invalid session"})
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Invalid session"})
 		return
 	}
 
 	var req PaymentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Invalid payload format"})
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Invalid payload format"})
 		return
 	}
 
@@ -84,13 +84,13 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 	if apiKey == "" || merchantID == "" {
 		log.Println("Missing CloudPay API key or Merchant ID environment variables")
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "CloudPay payment gateway not configured"})
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "CloudPay payment gateway not configured"})
 		return
 	}
 
 	payload := map[string]interface{}{
 		"merchant_id":  merchantID,
-		"phone_number": phone,
+		"phone":        phone,
 		"amount":       req.Amount,
 		"currency":     "KES",
 		"reference":    "MEMBERSHIP_" + user.Email,
@@ -99,15 +99,20 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		"callback_url": os.Getenv("APP_URL") + "/api/payment/cloudpay/webhook",
 	}
 
-	bodyBytes, _ := json.Marshal(payload)
+	bodyBytes, err := json.Marshal(payload)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Failed to format JSON payload"})
+		return
+	}
 
-	// Updated live API endpoint URL
+	// Live API endpoint URL
 	cloudPayURL := "https://pay.cloud.or.ke/api/payments/mpesa/stkpush"
 
 	reqHttp, err := http.NewRequest("POST", cloudPayURL, bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Failed to construct gateway request"})
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Failed to construct gateway request"})
 		return
 	}
 
@@ -120,7 +125,7 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("CLOUDPAY STK REQUEST FAILED:", err)
 		w.WriteHeader(http.StatusBadGateway)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Failed to connect to CloudPay server"})
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Failed to connect to CloudPay server"})
 		return
 	}
 	defer resp.Body.Close()
@@ -134,7 +139,7 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 
 	if resp.StatusCode >= 400 {
 		w.WriteHeader(resp.StatusCode)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "CloudPay transaction initiation failed"})
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "CloudPay transaction initiation failed"})
 		return
 	}
 
@@ -143,10 +148,12 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 	if ref == "" {
 		ref = "CLOUDPAY_" + phone
 	}
-	_ = db.CreatePendingMembership(user.ID, req.Plan, ref)
+	if err := db.CreatePendingMembership(user.ID, req.Plan, ref); err != nil {
+		log.Println("Failed to record pending membership:", err)
+	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"success":   true,
 		"message":   "CloudPay M-Pesa prompt sent. Check your phone.",
 		"reference": ref,
@@ -184,4 +191,29 @@ func CloudPayWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+// -------------------------
+// APPLICATION ENTRY POINT
+// -------------------------
+func main() {
+	// Initialize Database connection
+	db.Init()
+
+	// Serve Static Files
+	fs := http.FileServer(http.Dir("static"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
+
+	// Register Payment Endpoints
+	http.HandleFunc("/api/payment/cloudpay/stk", CloudPayPaymentHandler)
+	http.HandleFunc("/api/payment/cloudpay/webhook", CloudPayWebhookHandler)
+
+	// Determine Port
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Println("GlobalChat server running on port " + port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
