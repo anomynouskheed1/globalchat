@@ -1,7 +1,8 @@
+{{define "wallet.html"}}
 {{template "head" .}}
 {{template "nav" .}}
 
-<section class="wallet-section">
+<section class="wallet-section" id="walletApp" data-is-member="{{if .IsMember}}true{{else}}false{{end}}">
   <div class="section-container">
 
     <div class="wallet-header reveal">
@@ -184,8 +185,6 @@
           <span class="tx-amount green">+KES 750</span>
         </div>
 
-
-
       </div>
     </div>
 
@@ -193,28 +192,17 @@
 </section>
 
 <script>
-  /*
-    MEMBERSHIP STATUS
-    false = not member
-    true = member
-
-    Later from Go backend use:
-    let isMember = {{.IsMember}};
-  */
-
-  let isMember = false;
+  // Safely read Go state from DOM attribute to keep VS Code JS Linter happy
+  let isMember = document.getElementById("walletApp").dataset.isMember === "true";
 
   // CHECK MEMBERSHIP
   function checkMembership() {
-
     if (!isMember) {
       document
         .getElementById("membershipModal")
         .classList.remove("hidden");
-
       return;
     }
-
     showWithdraw();
   }
 
@@ -241,9 +229,7 @@
 
   // WITHDRAW SUCCESS
   function simulateWithdraw() {
-
     closeWithdraw();
-
     document
       .getElementById("withdrawSuccess")
       .classList.remove("hidden");
@@ -258,7 +244,6 @@
 
   // SWITCH PAYMENT TABS
   function switchPay(id, btn) {
-
     document
       .querySelectorAll(".pay-form")
       .forEach(el => el.classList.add("hidden"));
@@ -276,7 +261,6 @@
 
   // FILTER TRANSACTIONS
   function filterTx(type, btn) {
-
     document
       .querySelectorAll(".filter-btn")
       .forEach(b => b.classList.remove("active"));
@@ -286,7 +270,6 @@
     document
       .querySelectorAll(".tx-item")
       .forEach(item => {
-
         if (type === "all") {
           item.style.display = "flex";
         } else {
@@ -300,3 +283,4 @@
 </script>
 
 {{template "footer" .}}
+{{end}}
