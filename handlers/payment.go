@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"globalchat/db" // Adjust if your module name in go.mod is different
+	"globalchat/db"
 )
 
 type PaymentRequest struct {
@@ -34,6 +34,42 @@ type CloudPayWebhookPayload struct {
 	Plan      string `json:"plan"`
 }
 
+// Helper struct for OAuth Token response
+type CloudPayTokenResponse struct {
+	AccessToken string `json:"access_token"`
+}
+
+// Helper function to get OAuth token
+func getCloudPayAccessToken(apiKey, merchantID string) (string, error) {
+	tokenURL := "https://pay.cloud.or.ke/api/oauth/token"
+	req, err := http.NewRequest("POST", tokenURL, nil)
+	if err != nil {
+		return "", err
+	}
+
+	req.SetBasicAuth(apiKey, merchantID)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	var tokResp CloudPayTokenResponse
+	if err := json.Unmarshal(body, &tokResp); err != nil {
+		return "", err
+	}
+
+	if tokResp.AccessToken == "" {
+		// Fallback: If your dashboard supplies a raw bearer key directly, use the apiKey
+		return apiKey, nil
+	}
+
+	return tokResp.AccessToken, nil
+}
+
 // -------------------------
 // CLOUDPAY STK PUSH HANDLER
 // -------------------------
@@ -46,7 +82,6 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch user session using gc_session cookie name
 	cookie, err := r.Cookie("gc_session")
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -68,7 +103,6 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Phone formatting (254XXXXXXXXX)
 	phone := strings.TrimSpace(req.Phone)
 	phone = strings.ReplaceAll(phone, " ", "")
 	if strings.HasPrefix(phone, "+") {
@@ -88,9 +122,19 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Fetch token
+	token, err := getCloudPayAccessToken(apiKey, merchantID)
+	if err != nil {
+		log.Println("Failed to obtain CloudPay access token:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Failed to authenticate with CloudPay gateway"})
+		return
+	}
+
+	// Updated payload matching CloudPay API specs ("phone", "amount", "reference")
 	payload := map[string]interface{}{
 		"merchant_id":  merchantID,
-		"phone_number": phone,
+		"phone":        phone,
 		"amount":       req.Amount,
 		"currency":     "KES",
 		"reference":    "MEMBERSHIP_" + user.Email,
@@ -100,8 +144,6 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	bodyBytes, _ := json.Marshal(payload)
-
-	// FIXED: Updated endpoint URL to the working gateway host
 	cloudPayURL := "https://pay.cloud.or.ke/api/payments/mpesa/stkpush"
 
 	reqHttp, err := http.NewRequest("POST", cloudPayURL, bytes.NewBuffer(bodyBytes))
@@ -112,9 +154,8 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	reqHttp.Header.Set("Content-Type", "application/json")
-	reqHttp.Header.Set("Authorization", "Bearer "+apiKey)
+	reqHttp.Header.Set("Authorization", "Bearer "+token)
 
-	// FIXED: Increased timeout from 12s to 30s for M-Pesa processing
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(reqHttp)
 	if err != nil {
@@ -138,7 +179,6 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Record pending membership record in SQLite database
 	ref := data.Ref
 	if ref == "" {
 		ref = "CLOUDPAY_" + phone
@@ -172,11 +212,9 @@ func CloudPayWebhookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify payment completion
 	if payload.Status == "COMPLETED" || payload.Status == "SUCCESS" {
 		log.Println("CLOUDPAY PAYMENT SUCCESSFUL FOR REF:", payload.Reference)
 
-		// Activate user membership in SQLite
 		err := db.ActivateMembership(payload.Reference)
 		if err != nil {
 			log.Println("Failed to activate membership:", err)

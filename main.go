@@ -1,147 +1,187 @@
-package main
+package handlers
 
 import (
-	"html/template"
+	"bytes"
+	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"os"
+	"strings"
+	"time"
 
-	"github.com/joho/godotenv"
-
-	"globalchat/db"
-	"globalchat/handlers"
+	"globalchat/db" // Adjust if your module name in go.mod is different
 )
 
-var templates *template.Template
-
-// LOAD TEMPLATES
-func loadTemplates() {
-	var err error
-	templates, err = template.ParseGlob("templates/*.html")
-	if err != nil {
-		log.Println("Error parsing templates on startup:", err)
-	}
+type PaymentRequest struct {
+	Phone  string `json:"phone"`
+	Amount int    `json:"amount"`
+	Plan   string `json:"plan"`
 }
 
-// RENDER FUNCTION
-func render(w http.ResponseWriter, tmpl string, data interface{}) {
-	// Try executing from preloaded templates first
-	err := templates.ExecuteTemplate(w, tmpl, data)
-	if err != nil {
-		log.Printf("Execution failed for template %s: %v. Attempting full re-parse...", tmpl, err)
-
-		// Fallback: Re-parse all templates so partials like head/nav/footer are available
-		t, parseErr := template.ParseGlob("templates/*.html")
-		if parseErr != nil {
-			http.Error(w, "Template parse error: "+parseErr.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		execErr := t.ExecuteTemplate(w, tmpl, data)
-		if execErr != nil {
-			log.Printf("Fallback execution error for %s: %v", tmpl, execErr)
-			http.Error(w, "Template execution error: "+execErr.Error(), http.StatusInternalServerError)
-		}
-	}
+type CloudPayResponse struct {
+	Success bool   `json:"success"`
+	Ref     string `json:"reference"`
+	Message string `json:"message"`
+	Status  string `json:"status"`
 }
 
-// INIT ENV
-func init() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("No .env file found, running in production mode")
-	}
+type CloudPayWebhookPayload struct {
+	Reference string `json:"reference"`
+	Status    string `json:"status"` // "COMPLETED" or "SUCCESS"
+	Amount    int    `json:"amount"`
+	UserID    int    `json:"user_id"`
+	Plan      string `json:"plan"`
 }
 
-func main() {
-	// 1. INITIALIZE DATABASE & MIGRATIONS
-	db.Init()
+// -------------------------
+// CLOUDPAY STK PUSH HANDLER
+// -------------------------
+func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 
-	// 2. LOAD TEMPLATES
-	loadTemplates()
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Method not allowed"})
+		return
+	}
 
-	// 3. STATIC FILES
-	fs := http.FileServer(http.Dir("static"))
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
+	// Fetch user session using gc_session cookie name
+	cookie, err := r.Cookie("gc_session")
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Unauthorized session"})
+		return
+	}
 
-	// 4. PUBLIC PAGES & AUTH
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		render(w, "index.html", nil)
+	user, err := db.GetSessionUser(cookie.Value)
+	if err != nil || user == nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Invalid session"})
+		return
+	}
+
+	var req PaymentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Invalid payload format"})
+		return
+	}
+
+	// Phone formatting (254XXXXXXXXX)
+	phone := strings.TrimSpace(req.Phone)
+	phone = strings.ReplaceAll(phone, " ", "")
+	if strings.HasPrefix(phone, "+") {
+		phone = strings.Replace(phone, "+", "", 1)
+	}
+	if strings.HasPrefix(phone, "07") || strings.HasPrefix(phone, "01") {
+		phone = "254" + phone[1:]
+	}
+
+	apiKey := os.Getenv("CLOUDPAY_API_KEY")
+	merchantID := os.Getenv("CLOUDPAY_MERCHANT_ID")
+
+	if apiKey == "" || merchantID == "" {
+		log.Println("Missing CloudPay API key or Merchant ID environment variables")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "CloudPay payment gateway not configured"})
+		return
+	}
+
+	payload := map[string]interface{}{
+		"merchant_id":  merchantID,
+		"phone_number": phone,
+		"amount":       req.Amount,
+		"currency":     "KES",
+		"reference":    "MEMBERSHIP_" + user.Email,
+		"user_id":      user.ID,
+		"plan":         req.Plan,
+		"callback_url": os.Getenv("APP_URL") + "/api/payment/cloudpay/webhook",
+	}
+
+	bodyBytes, _ := json.Marshal(payload)
+
+	// Updated live API endpoint URL
+	cloudPayURL := "https://pay.cloud.or.ke/api/payments/mpesa/stkpush"
+
+	reqHttp, err := http.NewRequest("POST", cloudPayURL, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Failed to construct gateway request"})
+		return
+	}
+
+	reqHttp.Header.Set("Content-Type", "application/json")
+	reqHttp.Header.Set("Authorization", "Bearer "+apiKey)
+
+	// Set 30 second timeout for network round-trips
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(reqHttp)
+	if err != nil {
+		log.Println("CLOUDPAY STK REQUEST FAILED:", err)
+		w.WriteHeader(http.StatusBadGateway)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Failed to connect to CloudPay server"})
+		return
+	}
+	defer resp.Body.Close()
+
+	responseBody, _ := io.ReadAll(resp.Body)
+	log.Println("CLOUDPAY STATUS CODE:", resp.StatusCode)
+	log.Println("CLOUDPAY RESPONSE:", string(responseBody))
+
+	var data CloudPayResponse
+	_ = json.Unmarshal(responseBody, &data)
+
+	if resp.StatusCode >= 400 {
+		w.WriteHeader(resp.StatusCode)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "CloudPay transaction initiation failed"})
+		return
+	}
+
+	// Record pending membership record in SQLite database
+	ref := data.Ref
+	if ref == "" {
+		ref = "CLOUDPAY_" + phone
+	}
+	_ = db.CreatePendingMembership(user.ID, req.Plan, ref)
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":   true,
+		"message":   "CloudPay M-Pesa prompt sent. Check your phone.",
+		"reference": ref,
+		"status":    data.Status,
 	})
+}
 
-	http.HandleFunc("/register", handlers.HandleRegister)
-	http.HandleFunc("/login", handlers.HandleLogin)
-	http.HandleFunc("/logout", handlers.HandleLogout)
+// -------------------------
+// CLOUDPAY WEBHOOK
+// -------------------------
+func CloudPayWebhookHandler(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error reading body", http.StatusBadRequest)
+		return
+	}
 
-	http.HandleFunc("/screening", func(w http.ResponseWriter, r *http.Request) {
-		render(w, "screening.html", nil)
-	})
+	log.Println("CLOUDPAY WEBHOOK RECEIVED:", string(body))
 
-	http.HandleFunc("/membership", func(w http.ResponseWriter, r *http.Request) {
-		render(w, "membership.html", nil)
-	})
+	var payload CloudPayWebhookPayload
+	if err := json.Unmarshal(body, &payload); err != nil {
+		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+		return
+	}
 
-	// 5. SECURED DASHBOARD PAGES
-	renderSecuredPage := func(page string) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			user := handlers.GetCurrentUser(r)
+	// Verify payment completion
+	if payload.Status == "COMPLETED" || payload.Status == "SUCCESS" {
+		log.Println("CLOUDPAY PAYMENT SUCCESSFUL FOR REF:", payload.Reference)
 
-			// Wrap user in data map so templates can evaluate .User
-			data := map[string]interface{}{
-				"User": user,
-			}
-
-			render(w, page, data)
+		// Activate user membership in SQLite
+		err := db.ActivateMembership(payload.Reference)
+		if err != nil {
+			log.Println("Failed to activate membership:", err)
 		}
 	}
 
-	http.HandleFunc("/dashboard", handlers.RequireAuth(renderSecuredPage("dashboard.html")))
-	http.HandleFunc("/wallet", handlers.RequireAuth(renderSecuredPage("wallet.html")))
-	http.HandleFunc("/rewards", handlers.RequireAuth(renderSecuredPage("rewards.html")))
-	http.HandleFunc("/tasks", handlers.RequireAuth(renderSecuredPage("tasks.html")))
-	http.HandleFunc("/chat", handlers.RequireAuth(renderSecuredPage("chat.html")))
-	http.HandleFunc("/survey", handlers.RequireAuth(renderSecuredPage("survey.html")))
-	http.HandleFunc("/profile", handlers.RequireAuth(renderSecuredPage("profile.html")))
-	http.HandleFunc("/leaderboard", handlers.RequireAuth(renderSecuredPage("leaderboard.html")))
-
-	// Admin Page with Restricted Access
-	http.HandleFunc("/admin", handlers.RequireAuth(func(w http.ResponseWriter, r *http.Request) {
-		user := handlers.GetCurrentUser(r)
-
-		adminEmail := os.Getenv("ADMIN_EMAIL")
-		if adminEmail == "" {
-			adminEmail = "admin@globalchat.com"
-		}
-
-		if user == nil || user.Email != adminEmail {
-			http.Error(w, "Forbidden: Admin access required", http.StatusForbidden)
-			return
-		}
-
-		data := map[string]interface{}{
-			"User": user,
-		}
-
-		render(w, "admin.html", data)
-	}))
-
-	// 6. API ENDPOINTS
-	http.HandleFunc("/api/payment/cloudpay/stk", handlers.CloudPayPaymentHandler)
-	http.HandleFunc("/api/payment/stk", handlers.CloudPayPaymentHandler)
-	http.HandleFunc("/api/payment/cloudpay/webhook", handlers.CloudPayWebhookHandler)
-
-	http.HandleFunc("/api/work/complete", handlers.CompleteWorkHandler)
-
-	http.HandleFunc("/api/admin/payments", handlers.AdminGetPaymentsHandler)
-	http.HandleFunc("/api/admin/memberships", handlers.AdminGetMembershipsHandler)
-	http.HandleFunc("/api/admin/memberships/activate", handlers.AdminActivateMembershipHandler)
-
-	// 7. START SERVER
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-
-	log.Println("GlobalChat running on port", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	w.WriteHeader(http.StatusOK)
 }
