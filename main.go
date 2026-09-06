@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"io"
 	"log"
@@ -18,6 +19,7 @@ var templates *template.Template
 
 func loadTemplates() {
 	var err error
+	// Parses all HTML files in the templates directory
 	templates, err = template.ParseGlob("templates/*.html")
 	if err != nil {
 		log.Println("Template parsing notice:", err)
@@ -31,12 +33,12 @@ func render(w http.ResponseWriter, tmpl string, data interface{}) {
 	}
 	err := templates.ExecuteTemplate(w, tmpl, data)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Template execution error: %v", err), http.StatusInternalServerError)
 	}
 }
 
 // -------------------------
-// DATA TYPES
+// DATA STRUCTURES
 // -------------------------
 type PaymentRequest struct {
 	Phone  string `json:"phone"`
@@ -53,14 +55,52 @@ type CloudPayResponse struct {
 
 type CloudPayWebhookPayload struct {
 	Reference string `json:"reference"`
-	Status    string `json:"status"`
+	Status    string `json:"status"` // "COMPLETED" or "SUCCESS"
 	Amount    int    `json:"amount"`
 	UserID    int    `json:"user_id"`
 	Plan      string `json:"plan"`
 }
 
+type CloudPayTokenResponse struct {
+	AccessToken string `json:"access_token"`
+}
+
+// Helper function to handle OAuth authentication with CloudPay
+func getCloudPayAccessToken(apiKey, merchantID string) (string, error) {
+	tokenURL := "https://pay.cloud.or.ke/api/oauth/token"
+	req, err := http.NewRequest("POST", tokenURL, nil)
+	if err != nil {
+		return "", err
+	}
+
+	req.SetBasicAuth(apiKey, merchantID)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	if resp.StatusCode >= 400 {
+		return apiKey, nil
+	}
+
+	var tokResp CloudPayTokenResponse
+	if err := json.Unmarshal(body, &tokResp); err != nil || tokResp.AccessToken == "" {
+		return apiKey, nil
+	}
+
+	return tokResp.AccessToken, nil
+}
+
 // -------------------------
-// CLOUDPAY STK PUSH
+// CLOUDPAY PAYMENT HANDLER
 // -------------------------
 func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -111,6 +151,12 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	token, err := getCloudPayAccessToken(apiKey, merchantID)
+	if err != nil {
+		log.Println("Failed to retrieve CloudPay access token:", err)
+		token = apiKey
+	}
+
 	payload := map[string]interface{}{
 		"merchant_id":  merchantID,
 		"phone":        phone,
@@ -125,7 +171,7 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 	bodyBytes, err := json.Marshal(payload)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Failed to serialize payment request"})
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Failed to encode request payload"})
 		return
 	}
 
@@ -139,7 +185,7 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	reqHttp.Header.Set("Content-Type", "application/json")
-	reqHttp.Header.Set("Authorization", "Bearer "+apiKey)
+	reqHttp.Header.Set("Authorization", "Bearer "+token)
 
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(reqHttp)
@@ -182,7 +228,7 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // -------------------------
-// CLOUDPAY WEBHOOK
+// CLOUDPAY WEBHOOK HANDLER
 // -------------------------
 func CloudPayWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
@@ -216,20 +262,64 @@ func main() {
 	db.Init()
 	loadTemplates()
 
-	// Serve Static Files
+	// Static Files (CSS, JS, Images)
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	// Root Route
+	// Page Routes
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
-			http.NotFound(w, r)
+			render(w, r.URL.Path[1:]+".html", nil)
 			return
 		}
 		render(w, "index.html", nil)
 	})
 
-	// API Routes
+	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+		render(w, "login.html", nil)
+	})
+
+	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
+		render(w, "register.html", nil)
+	})
+
+	http.HandleFunc("/dashboard", func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("gc_session")
+		if err != nil {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
+
+		user, err := db.GetSessionUser(cookie.Value)
+		if err != nil || user == nil {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
+
+		render(w, "dashboard.html", user)
+	})
+
+	http.HandleFunc("/pricing", func(w http.ResponseWriter, r *http.Request) {
+		render(w, "pricing.html", nil)
+	})
+
+	http.HandleFunc("/chat", func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("gc_session")
+		if err != nil {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
+
+		user, err := db.GetSessionUser(cookie.Value)
+		if err != nil || user == nil {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
+
+		render(w, "chat.html", user)
+	})
+
+	// Payment Endpoints
 	http.HandleFunc("/api/payment/cloudpay/stk", CloudPayPaymentHandler)
 	http.HandleFunc("/api/payment/cloudpay/webhook", CloudPayWebhookHandler)
 
