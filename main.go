@@ -293,8 +293,7 @@ func main() {
 		renderPage(w, "index.html", nil)
 	})
 
-	// /register and /login both use register.html template
-	// Registration Route: POST saves user, sets session cookie, redirects to /screening
+	// Registration Route
 	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			_ = r.ParseForm()
@@ -303,72 +302,84 @@ func main() {
 			phone := r.FormValue("phone")
 			password := r.FormValue("password")
 
-			// 1. Create the user in your database
-			user, err := db.RegisterUser(name, email, phone, password)
+			// 1. Create user in database (using db.CreateUser)
+			// Note: If you want to hash passwords, use bcrypt, or pass password directly if stored as plain text
+			userId64, err := db.CreateUser(name, email, phone, password)
 			if err != nil {
 				log.Println("Registration error:", err)
 				http.Redirect(w, r, "/register?error=failed", http.StatusSeeOther)
 				return
 			}
+			userID := int(userId64)
 
-			// 2. Create a session for the new user
-			sessionToken, err := db.CreateSession(user.ID)
-			if err == nil {
-				http.SetCookie(w, &http.Cookie{
-					Name:     "gc_session",
-					Value:    sessionToken,
-					Path:     "/",
-					HttpOnly: true,
-					Expires:  time.Now().Add(24 * time.Hour),
-				})
+			// 2. Generate a session token string
+			sessionToken := fmt.Sprintf("sess_%d_%d", userID, time.Now().UnixNano())
+			expiresAt := time.Now().Add(24 * time.Hour)
+
+			// 3. Create session in database matching db.CreateSession signature
+			err = db.CreateSession(sessionToken, userID, expiresAt)
+			if err != nil {
+				log.Println("Session creation error:", err)
 			}
 
-			// 3. Redirect to screening as intended
+			// 4. Set session cookie
+			http.SetCookie(w, &http.Cookie{
+				Name:     "gc_session",
+				Value:    sessionToken,
+				Path:     "/",
+				HttpOnly: true,
+				Expires:  expiresAt,
+			})
+
+			// 5. Redirect to screening
 			http.Redirect(w, r, "/screening", http.StatusSeeOther)
 			return
 		}
 		renderPage(w, "register.html", nil)
 	})
 
-	// Login Route: POST authenticates user, sets session cookie, redirects straight to /dashboard
+	// Login Route
 	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			_ = r.ParseForm()
 			email := r.FormValue("email")
 			password := r.FormValue("password")
 
-			// 1. Authenticate user credentials against database
-			user, err := db.AuthenticateUser(email, password)
-			if err != nil || user == nil {
+			// 1. Fetch user by email
+			user, err := db.GetUserByEmail(email)
+			if err != nil || user == nil || user.PasswordHash != password {
 				log.Println("Login failed for:", email)
 				http.Redirect(w, r, "/login?error=invalid", http.StatusSeeOther)
 				return
 			}
 
-			// 2. Create login session
-			sessionToken, err := db.CreateSession(user.ID)
+			// 2. Generate session token
+			sessionToken := fmt.Sprintf("sess_%d_%d", user.ID, time.Now().UnixNano())
+			expiresAt := time.Now().Add(24 * time.Hour)
+
+			// 3. Create session matching db.CreateSession signature
+			err = db.CreateSession(sessionToken, user.ID, expiresAt)
 			if err != nil {
 				log.Println("Session creation error:", err)
 				http.Redirect(w, r, "/login?error=session", http.StatusSeeOther)
 				return
 			}
 
-			// 3. Set session cookie
+			// 4. Set cookie
 			http.SetCookie(w, &http.Cookie{
 				Name:     "gc_session",
 				Value:    sessionToken,
 				Path:     "/",
 				HttpOnly: true,
-				Expires:  time.Now().Add(24 * time.Hour),
+				Expires:  expiresAt,
 			})
 
-			// 4. Redirect straight to Dashboard!
+			// 5. Redirect straight to Dashboard
 			http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 			return
 		}
 		renderPage(w, "register.html", nil)
 	})
-
 	// Payment Endpoints
 	http.HandleFunc("/api/payment/cloudpay/stk", CloudPayPaymentHandler)
 	http.HandleFunc("/api/payment/cloudpay/webhook", CloudPayWebhookHandler)
