@@ -111,7 +111,7 @@
 
         <div class="security-badges">
           <span>🔒 Secure Payment</span>
-          <span>✅ IntaSend Protected</span>
+          <span>✅ CloudPay Protected</span>
           <span>🛡️ M-Pesa STK Push</span>
         </div>
 
@@ -187,7 +187,7 @@
     `;
 
     try {
-      const response = await fetch("/pay/mpesa", {
+      const response = await fetch("/api/payment/cloudpay/stk", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -198,6 +198,14 @@
           plan: selectedPlan
         })
       });
+
+      // Guard against HTML responses (404 / non-JSON errors)
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const rawText = await response.text();
+        console.error("Expected JSON but received HTML/Text:", rawText);
+        throw new Error(`Server route error (${response.status}). Endpoint returned non-JSON data.`);
+      }
 
       const data = await response.json();
 
@@ -222,7 +230,7 @@
       console.error("Payment Request Error:", error);
       statusBox.innerHTML = `
         <div class="payment-error">
-          ❌ Server connection error. Please try again.
+          ❌ ${error.message || 'Server connection error. Please try again.'}
         </div>
       `;
       payBtn.disabled = false;

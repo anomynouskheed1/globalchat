@@ -117,7 +117,8 @@ func main() {
 	})
 
 	// 6. API ENDPOINTS
-	// Payment Routes
+	// Payment Routes (Supporting both endpoint paths to prevent 404 HTML fallback)
+	http.HandleFunc("/api/payment/cloudpay/stk", handlers.CloudPayPaymentHandler)
 	http.HandleFunc("/api/payment/stk", handlers.CloudPayPaymentHandler)
 	http.HandleFunc("/api/payment/cloudpay/webhook", handlers.CloudPayWebhookHandler)
 
