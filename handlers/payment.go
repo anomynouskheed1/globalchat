@@ -40,22 +40,24 @@ type CloudPayTokenResponse struct {
 }
 
 // Helper function to get OAuth token with response status checking
-func getCloudPayAccessToken(apiKey, merchantID string) (string, error) {
-	tokenURL := "https://pay.cloud.or.ke/api/oauth/token"
+func getCloudPayAccessToken(consumerKey, consumerSecret string) (string, error) {
+	tokenURL := "https://www.pay.cloud.or.ke/api/oauth/token"
 
 	req, err := http.NewRequest(http.MethodPost, tokenURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("request creation failed: %w", err)
 	}
 
-	req.SetBasicAuth(apiKey, merchantID)
+	req.SetBasicAuth(consumerKey, consumerSecret)
 	req.Header.Set("Accept", "application/json")
 
-	client := &http.Client{Timeout: 15 * time.Second}
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("token endpoint request failed: %w", err)
+		return "", fmt.Errorf("token request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -74,16 +76,17 @@ func getCloudPayAccessToken(apiKey, merchantID string) (string, error) {
 		)
 	}
 
-	var tokResp CloudPayTokenResponse
-	if err := json.Unmarshal(body, &tokResp); err != nil {
+	var tokenResponse CloudPayTokenResponse
+
+	if err := json.Unmarshal(body, &tokenResponse); err != nil {
 		return "", fmt.Errorf("invalid token response: %w", err)
 	}
 
-	if tokResp.AccessToken == "" {
-		return "", fmt.Errorf("CloudPay returned no access token")
+	if tokenResponse.AccessToken == "" {
+		return "", fmt.Errorf("CloudPay returned an empty access token")
 	}
 
-	return tokResp.AccessToken, nil
+	return tokenResponse.AccessToken, nil
 }
 
 // -------------------------
@@ -128,17 +131,21 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		phone = "254" + phone[1:]
 	}
 
-	apiKey := os.Getenv("CLOUDPAY_API_KEY")
+	consumerKey := os.Getenv("CLOUDPAY_CONSUMER_KEY")
+	consumerSecret := os.Getenv("CLOUDPAY_CONSUMER_SECRET")
 	merchantID := os.Getenv("CLOUDPAY_MERCHANT_ID")
 
-	if apiKey == "" || merchantID == "" {
-		log.Println("Missing CloudPay API key or Merchant ID environment variables")
+	if consumerKey == "" || consumerSecret == "" || merchantID == "" {
+		log.Println("Missing CloudPay credentials")
 		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "CloudPay payment gateway not configured"})
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"message": "CloudPay payment gateway not configured",
+		})
 		return
 	}
 
-	token, err := getCloudPayAccessToken(apiKey, merchantID)
+	token, err := getCloudPayAccessToken(consumerKey, consumerSecret)
 	if err != nil {
 		log.Println("Failed to obtain CloudPay access token:", err)
 		w.WriteHeader(http.StatusInternalServerError)
