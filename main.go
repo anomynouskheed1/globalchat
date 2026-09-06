@@ -12,19 +12,19 @@ import (
 	"globalchat/handlers"
 )
 
-// RENDER FUNCTION (Parses specific page template)
-func render(w http.ResponseWriter, tmplFile string, data interface{}) {
-	// Parse the specific template file directly from the templates folder
-	tmpl, err := template.ParseFiles("templates/" + tmplFile)
-	if err != nil {
-		log.Println("Template parsing error for", tmplFile, ":", err)
-		http.Error(w, "Template Error: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
+var templates *template.Template
 
-	err = tmpl.Execute(w, data)
+// LOAD TEMPLATES
+func loadTemplates() {
+	templates = template.Must(template.ParseGlob("templates/*.html"))
+}
+
+// RENDER FUNCTION
+func render(w http.ResponseWriter, tmpl string, data interface{}) {
+	err := templates.ExecuteTemplate(w, tmpl, data)
 	if err != nil {
-		log.Println("Template render error for", tmplFile, ":", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Println("Template render error:", err)
 	}
 }
 
@@ -40,11 +40,14 @@ func main() {
 	// 1. INITIALIZE DATABASE & MIGRATIONS
 	db.Init()
 
-	// 2. STATIC FILES
+	// 2. LOAD TEMPLATES
+	loadTemplates()
+
+	// 3. STATIC FILES
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	// 3. PUBLIC PAGES & AUTH
+	// 4. PUBLIC PAGES & AUTH
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		render(w, "index.html", nil)
 	})
@@ -61,7 +64,7 @@ func main() {
 		render(w, "membership.html", nil)
 	})
 
-	// 4. SECURED DASHBOARD PAGES
+	// 5. SECURED DASHBOARD PAGES
 	renderSecuredPage := func(page string) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			user := handlers.GetCurrentUser(r)
@@ -94,7 +97,7 @@ func main() {
 		render(w, "admin.html", user)
 	}))
 
-	// 5. API ENDPOINTS
+	// 6. API ENDPOINTS
 	// Payment Routes
 	http.HandleFunc("/api/payment/cloudpay/stk", handlers.CloudPayPaymentHandler)
 	http.HandleFunc("/api/payment/stk", handlers.CloudPayPaymentHandler)
@@ -108,7 +111,7 @@ func main() {
 	http.HandleFunc("/api/admin/memberships", handlers.AdminGetMembershipsHandler)
 	http.HandleFunc("/api/admin/memberships/activate", handlers.AdminActivateMembershipHandler)
 
-	// 6. START SERVER (RENDER SAFE)
+	// 7. START SERVER (RENDER SAFE)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
