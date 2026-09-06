@@ -42,14 +42,17 @@ type CloudPayTokenResponse struct {
 // Helper function to get OAuth token with response status checking
 func getCloudPayAccessToken(apiKey, merchantID string) (string, error) {
 	tokenURL := "https://pay.cloud.or.ke/api/oauth/token"
-	req, err := http.NewRequest("POST", tokenURL, nil)
+
+	req, err := http.NewRequest(http.MethodPost, tokenURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("request creation failed: %w", err)
 	}
 
 	req.SetBasicAuth(apiKey, merchantID)
+	req.Header.Set("Accept", "application/json")
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: 15 * time.Second}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("token endpoint request failed: %w", err)
@@ -58,18 +61,26 @@ func getCloudPayAccessToken(apiKey, merchantID string) (string, error) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed to read token response body: %w", err)
+		return "", fmt.Errorf("failed to read token response: %w", err)
 	}
 
-	if resp.StatusCode >= 400 {
-		log.Printf("Token OAuth failed [HTTP %d]: %s", resp.StatusCode, string(body))
-		// Fall back to API key directly if bearer auth token creation isn't required by merchant tier
-		return apiKey, nil
+	log.Printf("CLOUDPAY TOKEN STATUS: %d", resp.StatusCode)
+	log.Printf("CLOUDPAY TOKEN RESPONSE: %s", string(body))
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", fmt.Errorf(
+			"CloudPay authentication failed: HTTP %d",
+			resp.StatusCode,
+		)
 	}
 
 	var tokResp CloudPayTokenResponse
-	if err := json.Unmarshal(body, &tokResp); err != nil || tokResp.AccessToken == "" {
-		return apiKey, nil
+	if err := json.Unmarshal(body, &tokResp); err != nil {
+		return "", fmt.Errorf("invalid token response: %w", err)
+	}
+
+	if tokResp.AccessToken == "" {
+		return "", fmt.Errorf("CloudPay returned no access token")
 	}
 
 	return tokResp.AccessToken, nil
@@ -136,14 +147,9 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	payload := map[string]interface{}{
-		"merchant_id":  merchantID,
-		"phone":        phone,
-		"amount":       req.Amount,
-		"currency":     "KES",
-		"reference":    "MEMBERSHIP_" + user.Email,
-		"user_id":      user.ID,
-		"plan":         req.Plan,
-		"callback_url": os.Getenv("APP_URL") + "/api/payment/cloudpay/webhook",
+		"phone":       phone,
+		"amount":      req.Amount,
+		"description": "GlobalChat " + req.Plan,
 	}
 
 	bodyBytes, err := json.Marshal(payload)
