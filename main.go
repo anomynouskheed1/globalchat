@@ -47,14 +47,14 @@ func main() {
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	// 4. PUBLIC PAGES
+	// 4. PUBLIC PAGES & AUTH
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		render(w, "index.html", nil)
 	})
 
-	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
-		render(w, "register.html", nil)
-	})
+	http.HandleFunc("/register", handlers.HandleRegister)
+	http.HandleFunc("/login", handlers.HandleLogin)
+	http.HandleFunc("/logout", handlers.HandleLogout)
 
 	http.HandleFunc("/screening", func(w http.ResponseWriter, r *http.Request) {
 		render(w, "screening.html", nil)
@@ -67,43 +67,24 @@ func main() {
 	// 5. SECURED DASHBOARD PAGES
 	renderSecuredPage := func(page string) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			cookie, err := r.Cookie("session")
-			if err != nil {
-				http.Redirect(w, r, "/register", http.StatusSeeOther)
-				return
-			}
-			user, err := db.GetSessionUser(cookie.Value)
-			if err != nil || user == nil {
-				http.Redirect(w, r, "/register", http.StatusSeeOther)
-				return
-			}
+			user := handlers.GetCurrentUser(r)
 			render(w, page, user)
 		}
 	}
 
-	http.HandleFunc("/dashboard", renderSecuredPage("dashboard.html"))
-	http.HandleFunc("/wallet", renderSecuredPage("wallet.html"))
-	http.HandleFunc("/rewards", renderSecuredPage("rewards.html"))
-	http.HandleFunc("/tasks", renderSecuredPage("tasks.html"))
-	http.HandleFunc("/chat", renderSecuredPage("chat.html"))
-	http.HandleFunc("/survey", renderSecuredPage("survey.html"))
-	http.HandleFunc("/profile", renderSecuredPage("profile.html"))
-	http.HandleFunc("/leaderboard", renderSecuredPage("leaderboard.html"))
+	http.HandleFunc("/dashboard", handlers.RequireAuth(renderSecuredPage("dashboard.html")))
+	http.HandleFunc("/wallet", handlers.RequireAuth(renderSecuredPage("wallet.html")))
+	http.HandleFunc("/rewards", handlers.RequireAuth(renderSecuredPage("rewards.html")))
+	http.HandleFunc("/tasks", handlers.RequireAuth(renderSecuredPage("tasks.html")))
+	http.HandleFunc("/chat", handlers.RequireAuth(renderSecuredPage("chat.html")))
+	http.HandleFunc("/survey", handlers.RequireAuth(renderSecuredPage("survey.html")))
+	http.HandleFunc("/profile", handlers.RequireAuth(renderSecuredPage("profile.html")))
+	http.HandleFunc("/leaderboard", handlers.RequireAuth(renderSecuredPage("leaderboard.html")))
 
 	// Admin Page with Restricted Access
-	http.HandleFunc("/admin", func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("session")
-		if err != nil {
-			http.Redirect(w, r, "/register", http.StatusSeeOther)
-			return
-		}
-		user, err := db.GetSessionUser(cookie.Value)
-		if err != nil || user == nil {
-			http.Redirect(w, r, "/register", http.StatusSeeOther)
-			return
-		}
+	http.HandleFunc("/admin", handlers.RequireAuth(func(w http.ResponseWriter, r *http.Request) {
+		user := handlers.GetCurrentUser(r)
 
-		// Restrict access to designated admin email
 		adminEmail := os.Getenv("ADMIN_EMAIL")
 		if adminEmail == "" {
 			adminEmail = "admin@globalchat.com"
@@ -114,10 +95,10 @@ func main() {
 		}
 
 		render(w, "admin.html", user)
-	})
+	}))
 
 	// 6. API ENDPOINTS
-	// Payment Routes (Supporting both endpoint paths to prevent 404 HTML fallback)
+	// Payment Routes
 	http.HandleFunc("/api/payment/cloudpay/stk", handlers.CloudPayPaymentHandler)
 	http.HandleFunc("/api/payment/stk", handlers.CloudPayPaymentHandler)
 	http.HandleFunc("/api/payment/cloudpay/webhook", handlers.CloudPayWebhookHandler)
