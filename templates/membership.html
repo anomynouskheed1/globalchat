@@ -14,22 +14,15 @@
 
       <!-- PREMIUM PLAN -->
       <div class="pricing-card glass reveal featured">
-
-        <div class="plan-badge popular">
-          Most Popular
-        </div>
+        <div class="plan-badge popular">Most Popular</div>
 
         <div class="plan-price">
-          KES 99<span>/month</span>
+          KES 299<span>/month</span>
         </div>
 
-        <div class="plan-usd">
-          ≈ USD 0.77/month
-        </div>
+        <div class="plan-usd">≈ USD 2.30/month</div>
 
-        <p class="plan-desc">
-          For serious earners
-        </p>
+        <p class="plan-desc">For serious earners</p>
 
         <ul class="plan-features">
           <li>✅ Unlimited tasks/day</li>
@@ -41,34 +34,24 @@
           <li>✅ Priority support</li>
         </ul>
 
-        <button class="btn-primary btn-full" onclick="openPaymentModal(99, 'Premium Membership')">
-          Upgrade — KES 99
+        <button class="btn-primary btn-full" onclick="openPaymentModal(299, 'Premium Membership')">
+          Upgrade — KES 299
         </button>
 
-        <p class="plan-note">
-          🔒 Secure payment · Cancel anytime
-        </p>
-
+        <p class="plan-note">🔒 Secure payment · Cancel anytime</p>
       </div>
 
       <!-- PRO PLAN -->
       <div class="pricing-card glass reveal">
-
-        <div class="plan-badge">
-          Pro
-        </div>
+        <div class="plan-badge">Pro VIP</div>
 
         <div class="plan-price">
-          KES 299<span>/month</span>
+          KES 499<span>/month</span>
         </div>
 
-        <div class="plan-usd">
-          ≈ USD 2.30/month
-        </div>
+        <div class="plan-usd">≈ USD 3.85/month</div>
 
-        <p class="plan-desc">
-          For power users & teams
-        </p>
+        <p class="plan-desc">For power users & max yields</p>
 
         <ul class="plan-features">
           <li>✅ Everything in Premium</li>
@@ -80,61 +63,50 @@
           <li>✅ Custom withdrawal schedule</li>
         </ul>
 
-        <button class="btn-outline btn-full" onclick="openPaymentModal(299, 'Pro Membership')">
-          Upgrade — KES 299
+        <button class="btn-outline btn-full" onclick="openPaymentModal(499, 'Pro Membership')">
+          Upgrade — KES 499
         </button>
-
       </div>
 
     </div>
 
     <!-- PAYMENT MODAL -->
     <div class="modal-overlay hidden" id="paymentModal">
-
       <div class="modal glass">
 
-        <button class="modal-close" onclick="closePaymentModal()">
-          ✕
-        </button>
+        <button class="modal-close" onclick="closePaymentModal()" aria-label="Close modal">✕</button>
 
         <h3>Complete Payment</h3>
 
-        <p class="modal-amount">
-          <strong id="membershipName"></strong>
+        <p class="modal-plan">
+          <strong id="membershipName">Premium Membership</strong>
         </p>
 
         <p class="modal-amount">
-          Amount:
-          <strong>KES <span id="membershipAmount"></span></strong>
+          Amount: <strong>KES <span id="membershipAmount">299</span></strong>
         </p>
 
         <div class="payment-tabs">
-          <button class="pay-tab active">
-            📱 M-Pesa
-          </button>
+          <button class="pay-tab active">📱 M-Pesa</button>
         </div>
 
         <!-- MPESA FORM -->
         <div class="pay-form">
-
           <div class="form-group">
-            <label>M-Pesa Phone Number</label>
-
-            <input type="tel" id="phone" placeholder="0712345678" maxlength="13" />
+            <label for="phone">M-Pesa Phone Number</label>
+            <input type="tel" id="phone" placeholder="0712345678 or 0112345678" maxlength="13" autocomplete="tel" />
           </div>
 
           <p class="pay-info">
-            You will receive an STK push on your phone.
-            Enter your M-Pesa PIN to confirm payment.
+            You will receive an STK push on your phone. Enter your M-Pesa PIN to confirm payment.
           </p>
 
-          <button class="btn-primary btn-full" onclick="payMpesa()">
+          <button class="btn-primary btn-full" id="payBtn" onclick="payMpesa()">
             Send STK Push
           </button>
 
           <!-- STATUS MESSAGE -->
           <div id="paymentStatus"></div>
-
         </div>
 
         <div class="security-badges">
@@ -144,130 +116,119 @@
         </div>
 
       </div>
-
     </div>
 
   </div>
 </section>
 
 <script>
-
-  let selectedAmount = 99;
+  let selectedAmount = 299;
   let selectedPlan = "Premium Membership";
 
   function openPaymentModal(amount, plan) {
-
     selectedAmount = amount;
     selectedPlan = plan;
 
-    document.getElementById("membershipAmount").innerText = amount;
+    document.getElementById("membershipAmount").innerText = amount.toLocaleString();
     document.getElementById("membershipName").innerText = plan;
+    document.getElementById("paymentStatus").innerHTML = "";
 
-    document.getElementById("paymentModal")
-      .classList.remove("hidden");
+    const payBtn = document.getElementById("payBtn");
+    payBtn.disabled = false;
+    payBtn.innerText = "Send STK Push";
+
+    document.getElementById("paymentModal").classList.remove("hidden");
   }
 
   function closePaymentModal() {
-
-    document.getElementById("paymentModal")
-      .classList.add("hidden");
+    document.getElementById("paymentModal").classList.add("hidden");
   }
 
+  // Close modal on background click
+  document.getElementById("paymentModal").addEventListener("click", function (e) {
+    if (e.target === this) {
+      closePaymentModal();
+    }
+  });
+
   async function payMpesa() {
-
-    let phone = document.getElementById("phone").value;
-
+    const phoneInput = document.getElementById("phone");
     const statusBox = document.getElementById("paymentStatus");
+    const payBtn = document.getElementById("payBtn");
 
-    // CLEAR OLD MESSAGE
+    let phone = phoneInput.value.trim().replace(/\s+/g, '');
     statusBox.innerHTML = "";
 
-    // REMOVE SPACES
-    phone = phone.replace(/\s/g, '');
-
-    // CONVERT +254
+    // Format phone number to 254XXXXXXXXX
     if (phone.startsWith("+254")) {
       phone = phone.replace("+", "");
-    }
-
-    // CONVERT 07XXXXXXXX
-    if (phone.startsWith("07")) {
+    } else if (phone.startsWith("07") || phone.startsWith("01")) {
       phone = "254" + phone.substring(1);
     }
 
-    console.log("Formatted Phone:", phone);
+    // Validates Kenyan MSISDN standard
+    const mpesaRegex = /^254(7|1)\d{8}$/;
 
-    // VALIDATION
-    if (!phone || phone.length < 12) {
-
+    if (!mpesaRegex.test(phone)) {
       statusBox.innerHTML = `
         <div class="payment-error">
-          ❌ Enter a valid Safaricom number
+          ❌ Enter a valid Safaricom phone number (e.g., 0712345678 or 0112345678)
         </div>
       `;
-
       return;
     }
 
-    // LOADING
+    payBtn.disabled = true;
+    payBtn.innerText = "Processing...";
     statusBox.innerHTML = `
       <div class="payment-loading">
-        ⏳ Sending STK Push...
+        ⏳ Sending STK Push to ${phone}...
       </div>
     `;
 
     try {
-
       const response = await fetch("/pay/mpesa", {
-
         method: "POST",
-
         headers: {
           "Content-Type": "application/json"
         },
-
         body: JSON.stringify({
           phone: phone,
           amount: selectedAmount,
           plan: selectedPlan
         })
-
       });
 
       const data = await response.json();
 
-      console.log("PAYMENT RESPONSE:", data);
-
-      if (data.success === true) {
-
+      if (response.ok && data.success) {
         statusBox.innerHTML = `
           <div class="payment-success">
             ✅ STK Push sent successfully.<br><br>
             Check your phone and enter your M-Pesa PIN.
           </div>
         `;
-
       } else {
-
         statusBox.innerHTML = `
           <div class="payment-error">
-            ❌ Payment failed. Please try again.
+            ❌ ${data.message || 'Payment initiation failed. Please try again.'}
           </div>
         `;
+        payBtn.disabled = false;
+        payBtn.innerText = "Send STK Push";
       }
 
     } catch (error) {
-
-      console.log(error);
-
+      console.error("Payment Request Error:", error);
       statusBox.innerHTML = `
         <div class="payment-error">
-          ❌ Server error occurred.
+          ❌ Server connection error. Please try again.
         </div>
       `;
+      payBtn.disabled = false;
+      payBtn.innerText = "Send STK Push";
     }
   }
-
 </script>
 
 <style>
@@ -297,6 +258,8 @@
     background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(10px);
     position: relative;
+    display: flex;
+    flex-direction: column;
   }
 
   .featured {
@@ -305,6 +268,7 @@
 
   .plan-badge {
     display: inline-block;
+    align-self: flex-start;
     padding: 6px 12px;
     border-radius: 30px;
     background: #222;
@@ -326,14 +290,33 @@
     font-size: 16px;
   }
 
+  .plan-usd {
+    font-size: 14px;
+    color: #aaa;
+    margin-top: 4px;
+  }
+
+  .plan-desc {
+    margin-top: 8px;
+    color: #ddd;
+  }
+
   .plan-features {
     list-style: none;
     padding: 0;
     margin: 30px 0;
+    flex-grow: 1;
   }
 
   .plan-features li {
     margin-bottom: 12px;
+  }
+
+  .plan-note {
+    font-size: 12px;
+    color: #888;
+    text-align: center;
+    margin-top: 12px;
   }
 
   .btn-primary,
@@ -344,6 +327,8 @@
     border: none;
     cursor: pointer;
     font-size: 16px;
+    font-weight: 600;
+    transition: background 0.2s ease, opacity 0.2s ease;
   }
 
   .btn-primary {
@@ -351,24 +336,38 @@
     color: white;
   }
 
+  .btn-primary:hover {
+    background: #00a383;
+  }
+
   .btn-outline {
-    border: 1px solid;
-    background: #00b894;
+    border: 1px solid #00b894;
+    background: transparent;
     color: white;
+  }
+
+  .btn-outline:hover {
+    background: rgba(0, 184, 148, 0.1);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 
   .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.75);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 999;
+    padding: 20px;
   }
 
   .hidden {
-    display: none;
+    display: none !important;
   }
 
   .modal {
@@ -379,12 +378,13 @@
     background: #111;
     color: white;
     position: relative;
+    box-sizing: border-box;
   }
 
   .modal-close {
     position: absolute;
-    top: 10px;
-    right: 14px;
+    top: 16px;
+    right: 18px;
     background: none;
     border: none;
     color: white;
@@ -392,8 +392,39 @@
     cursor: pointer;
   }
 
+  .modal-plan {
+    margin-top: 10px;
+    font-size: 18px;
+    color: #00b894;
+  }
+
+  .modal-amount {
+    margin-bottom: 20px;
+    font-size: 16px;
+  }
+
+  .payment-tabs {
+    margin-bottom: 20px;
+  }
+
+  .pay-tab {
+    background: #222;
+    border: 1px solid #00b894;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+
   .form-group {
     margin-bottom: 20px;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #ccc;
   }
 
   .form-group input {
@@ -403,20 +434,30 @@
     border: 1px solid #444;
     background: #1a1a1a;
     color: white;
+    box-sizing: border-box;
+    font-size: 16px;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: #00b894;
   }
 
   .pay-info {
     margin-bottom: 20px;
-    font-size: 14px;
+    font-size: 13px;
     color: #bbb;
+    line-height: 1.4;
   }
 
   .security-badges {
-    margin-top: 20px;
+    margin-top: 24px;
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
-    font-size: 13px;
+    font-size: 12px;
+    color: #888;
+    justify-content: center;
   }
 
   .payment-success {
@@ -428,6 +469,7 @@
     margin-top: 15px;
     text-align: center;
     font-weight: 600;
+    font-size: 14px;
   }
 
   .payment-error {
@@ -439,6 +481,7 @@
     margin-top: 15px;
     text-align: center;
     font-weight: 600;
+    font-size: 14px;
   }
 
   .payment-loading {
@@ -450,6 +493,7 @@
     margin-top: 15px;
     text-align: center;
     font-weight: 600;
+    font-size: 14px;
   }
 </style>
 

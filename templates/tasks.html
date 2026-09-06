@@ -3,10 +3,31 @@
 
 <section class="tasks-section">
   <div class="tasks-container">
+
+    <!-- User Progress & Wallet Banner -->
+    <div class="glass reveal"
+      style="padding: 20px; margin-bottom: 24px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);">
+      <div>
+        <h3 style="margin: 0 0 5px 0;">Worker Progress</h3>
+        <p style="margin: 0; opacity: 0.8; font-size: 0.9rem;">Complete tasks to accumulate daily earnings</p>
+      </div>
+      <div style="display: flex; gap: 20px; align-items: center;">
+        <div style="text-align: right;">
+          <span style="display: block; font-size: 0.8rem; opacity: 0.7;">Daily Files</span>
+          <strong id="file-counter" style="font-size: 1.2rem; color: #ffd700;">{{if
+            .User.FilesDone}}{{.User.FilesDone}}{{else}}0{{end}} / 10</strong>
+        </div>
+        <div style="text-align: right; border-left: 1px solid rgba(255,255,255,0.2); padding-left: 20px;">
+          <span style="display: block; font-size: 0.8rem; opacity: 0.7;">Wallet Balance</span>
+          <strong id="wallet-balance" style="font-size: 1.2rem; color: #2ecc71;">KES {{.User.BalanceKES}}</strong>
+        </div>
+      </div>
+    </div>
+
     <div class="tasks-header reveal">
       <div>
         <h2>Task Marketplace</h2>
-        <p>Real tasks, real pay. All rewards shown upfront before you start.</p>
+        <p>Real tasks, real pay. Earn randomized rewards between KES 700 and KES 1,000 per completed task.</p>
       </div>
       <div class="tasks-meta">
         <span class="live-badge">🔴 Live</span>
@@ -52,8 +73,8 @@
           <span>👥 3,421 done</span>
         </div>
         <div class="tc-footer">
-          <span class="tc-pay">KES 120</span>
-          <button class="btn-gold btn-sm" onclick="location.href='/membership'">Unlock Task</button>
+          <span class="tc-pay">KES 700 – 1,000</span>
+          <button class="btn-gold btn-sm task-action-btn" onclick="executeTask(this)">Start Task</button>
         </div>
       </div>
 
@@ -70,8 +91,8 @@
           <span>👥 1,200 done</span>
         </div>
         <div class="tc-footer">
-          <span class="tc-pay">KES 180</span>
-          <button class="btn-gold btn-sm" onclick="location.href='/membership'">Unlock Task</button>
+          <span class="tc-pay">KES 700 – 1,000</span>
+          <button class="btn-gold btn-sm task-action-btn" onclick="executeTask(this)">Start Task</button>
         </div>
       </div>
 
@@ -89,8 +110,8 @@
           <span>👥 5,800 done</span>
         </div>
         <div class="tc-footer">
-          <span class="tc-pay">KES 200</span>
-          <button class="btn-gold btn-sm" onclick="location.href='/membership'">Unlock Task</button>
+          <span class="tc-pay">KES 700 – 1,000</span>
+          <button class="btn-gold btn-sm task-action-btn" onclick="executeTask(this)">Start Task</button>
         </div>
       </div>
 
@@ -106,8 +127,8 @@
           <span>👥 2,100 done</span>
         </div>
         <div class="tc-footer">
-          <span class="tc-pay">KES 150</span>
-          <button class="btn-gold btn-sm" onclick="location.href='/membership'">Unlock Task</button>
+          <span class="tc-pay">KES 700 – 1,000</span>
+          <button class="btn-gold btn-sm task-action-btn" onclick="executeTask(this)">Start Task</button>
         </div>
       </div>
 
@@ -125,25 +146,8 @@
           <span>👥 890 done</span>
         </div>
         <div class="tc-footer">
-          <span class="tc-pay">KES 250</span>
-          <button class="btn-gold btn-sm" onclick="location.href='/membership'">Unlock Task</button>
-        </div>
-      </div>
-
-      <div class="task-card glass reveal" data-type="translation">
-        <div class="tc-header">
-          <span class="tc-cat translation-cat">🌐 Translation</span>
-        </div>
-        <h3>Translate App Menu (English → Yoruba)</h3>
-        <p>Translate 15 short app menu labels from English to Yoruba. Native speakers only.</p>
-        <div class="tc-meta">
-          <span>⏱ ~20 min</span>
-          <span>📝 15 labels</span>
-          <span>👥 340 done</span>
-        </div>
-        <div class="tc-footer">
-          <span class="tc-pay">KES 300</span>
-          <button class="btn-gold btn-sm" onclick="location.href='/membership'">Unlock Task</button>
+          <span class="tc-pay">KES 700 – 1,000</span>
+          <button class="btn-gold btn-sm task-action-btn" onclick="executeTask(this)">Start Task</button>
         </div>
       </div>
 
@@ -161,25 +165,8 @@
           <span>👥 4,200 done</span>
         </div>
         <div class="tc-footer">
-          <span class="tc-pay">KES 200</span>
-          <button class="btn-gold btn-sm" onclick="location.href='/membership'">Unlock Task</button>
-        </div>
-      </div>
-
-      <div class="task-card glass reveal" data-type="review">
-        <div class="tc-header">
-          <span class="tc-cat review">⭐ Review</span>
-        </div>
-        <h3>Rate 15 Website Designs</h3>
-        <p>Look at 15 website screenshots and rate each one on clarity, design, and trustworthiness.</p>
-        <div class="tc-meta">
-          <span>⏱ ~10 min</span>
-          <span>🖼️ 15 images</span>
-          <span>👥 1,780 done</span>
-        </div>
-        <div class="tc-footer">
-          <span class="tc-pay">KES 130</span>
-          <button class="btn-gold btn-sm" onclick="location.href='/membership'">Unlock Task</button>
+          <span class="tc-pay">KES 700 – 1,000</span>
+          <button class="btn-gold btn-sm task-action-btn" onclick="executeTask(this)">Start Task</button>
         </div>
       </div>
 
@@ -197,44 +184,8 @@
           <span>👥 2,341 done</span>
         </div>
         <div class="tc-footer">
-          <span class="tc-pay">KES 150</span>
-          <button class="btn-gold btn-sm" onclick="location.href='/membership'">Unlock Task</button>
-        </div>
-      </div>
-
-      <div class="task-card glass reveal" data-type="survey">
-        <div class="tc-header">
-          <span class="tc-cat survey">📋 Survey</span>
-        </div>
-        <h3>Daily Transport & Commute Habits</h3>
-        <p>Tell us how you get around your city. Matatu, boda, car, or walking? Quick 6-question survey.</p>
-        <div class="tc-meta">
-          <span>⏱ ~4 min</span>
-          <span>❓ 6 questions</span>
-          <span>👥 3,100 done</span>
-        </div>
-        <div class="tc-footer">
-          <span class="tc-pay">KES 80</span>
-          <button class="btn-gold btn-sm" onclick="location.href='/membership'">Unlock Task</button>
-        </div>
-      </div>
-
-      <!-- IMAGE TAGGING -->
-      <div class="task-card glass reveal" data-type="data">
-        <div class="tc-header">
-          <span class="tc-cat data-cat">📊 Data Entry</span>
-          <span class="tc-badge new">New</span>
-        </div>
-        <h3>Label Objects in 25 Photos</h3>
-        <p>Look at photos and click on objects like "car", "tree", "person". Used to train AI models.</p>
-        <div class="tc-meta">
-          <span>⏱ ~12 min</span>
-          <span>🖼️ 25 photos</span>
-          <span>👥 6,700 done</span>
-        </div>
-        <div class="tc-footer">
-          <span class="tc-pay">KES 160</span>
-          <button class="btn-gold btn-sm" onclick="location.href='/membership'">Unlock Task</button>
+          <span class="tc-pay">KES 700 – 1,000</span>
+          <button class="btn-gold btn-sm task-action-btn" onclick="executeTask(this)">Start Task</button>
         </div>
       </div>
 
@@ -245,7 +196,7 @@
           <span class="tc-badge gold-badge">Top Pay</span>
         </div>
         <h3>Write a 500-word Blog Post</h3>
-        <p>Write a well-structured blog post on a given topic. Guidelines and outline provided. Premium members only.
+        <p>Write a well-structured blog post on a given topic. Premium members earn elevated payouts up to KES 2,500.
         </p>
         <div class="tc-meta">
           <span>⏱ ~40 min</span>
@@ -253,34 +204,89 @@
           <span>👥 210 done</span>
         </div>
         <div class="tc-footer">
-          <span class="tc-pay gold">KES 500</span>
-          <button class="btn-gold btn-sm" onclick="location.href='/membership'">Unlock Task</button>
-        </div>
-      </div>
-
-      <div class="task-card glass reveal premium-card" data-type="premium">
-        <div class="tc-header">
-          <span class="tc-cat premium-cat">Premium 🔒</span>
-        </div>
-        <h3>Transcribe a 3-minute Audio Clip</h3>
-        <p>Listen to a short audio recording and type out exactly what is said. Clear audio, no jargon.</p>
-        <div class="tc-meta">
-          <span>⏱ ~25 min</span>
-          <span>🎧 3 min audio</span>
-          <span>👥 145 done</span>
-        </div>
-        <div class="tc-footer">
-          <span class="tc-pay gold">KES 450</span>
+          <span class="tc-pay gold">KES 1,500 – 2,500</span>
           <button class="btn-gold btn-sm" onclick="location.href='/membership'">Unlock Task</button>
         </div>
       </div>
 
     </div>
 
-    <div class="load-more reveal">
-      <button class="btn-outline btn-lg" onclick="showNotification('✅ Loading more tasks...')">Load More Tasks</button>
+    <div class="load-more reveal" style="text-align: center; margin-top: 30px;">
+      <button class="btn-outline btn-lg" onclick="alert('✅ All current live tasks loaded.')">Load More Tasks</button>
     </div>
   </div>
 </section>
+
+<script>
+  // Fetch current work status on page load
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      const res = await fetch('/api/work/status');
+      if (res.ok) {
+        const data = await res.json();
+        document.getElementById('file-counter').innerText = `${data.files_completed} / 10`;
+        document.getElementById('wallet-balance').innerText = `KES ${data.total_balance.toLocaleString()}`;
+      }
+    } catch (err) {
+      console.error('Failed to load work status:', err);
+    }
+  });
+
+  async function executeTask(btnElement) {
+    btnElement.disabled = true;
+    btnElement.innerText = "Processing...";
+
+    try {
+      const res = await fetch('/api/work/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+
+      if (data.status === 'limit_reached' || !data.success) {
+        alert(data.message || 'Daily free limit reached (10 files). Please upgrade your membership to continue.');
+        window.location.href = '/membership';
+        return;
+      }
+
+      if (data.success || data.status === 'success') {
+        const newBalance = data.new_balance || data.total_balance;
+        const filesCompleted = data.files_done || data.files_completed;
+        const payoutEarned = data.payout || data.earned_this_file;
+
+        document.getElementById('wallet-balance').innerText = `KES ${newBalance.toLocaleString()}`;
+        document.getElementById('file-counter').innerText = `${filesCompleted} / 10`;
+
+        btnElement.innerText = "Completed ✓";
+        btnElement.style.background = "#2ecc71";
+
+        alert(`🎉 Task Completed!\n\nYou earned KES ${payoutEarned.toLocaleString()} credited to your wallet balance.`);
+      } else {
+        alert(data.message || 'Error completing task.');
+        btnElement.innerText = "Start Task";
+        btnElement.disabled = false;
+      }
+    } catch (err) {
+      console.error('Work submission error:', err);
+      alert('Failed to submit task. Please check connection and try again.');
+      btnElement.innerText = "Start Task";
+      btnElement.disabled = false;
+    }
+  }
+
+  function filterTasks(category, btn) {
+    document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const cards = document.querySelectorAll('.task-card');
+    cards.forEach(card => {
+      if (category === 'all' || card.dataset.type === category) {
+        card.style.display = 'block';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+</script>
 
 {{template "footer" .}}

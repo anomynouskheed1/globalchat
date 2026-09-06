@@ -8,6 +8,7 @@ import (
 
 	"github.com/joho/godotenv"
 
+	"globalchat/db"
 	"globalchat/handlers"
 )
 
@@ -21,7 +22,6 @@ func loadTemplates() {
 // RENDER FUNCTION
 func render(w http.ResponseWriter, tmpl string, data interface{}) {
 	err := templates.ExecuteTemplate(w, tmpl, data)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Println("Template render error:", err)
@@ -37,15 +37,17 @@ func init() {
 }
 
 func main() {
+	// 1. INITIALIZE DATABASE & MIGRATIONS
+	db.Init()
 
-	// LOAD TEMPLATES FIRST (VERY IMPORTANT)
+	// 2. LOAD TEMPLATES
 	loadTemplates()
 
-	// STATIC FILES
+	// 3. STATIC FILES
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	// PAGES
+	// 4. PUBLIC PAGES
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		render(w, "index.html", nil)
 	})
@@ -62,54 +64,77 @@ func main() {
 		render(w, "membership.html", nil)
 	})
 
-	http.HandleFunc("/dashboard", func(w http.ResponseWriter, r *http.Request) {
-		render(w, "dashboard.html", nil)
-	})
+	// 5. SECURED DASHBOARD PAGES
+	renderSecuredPage := func(page string) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			cookie, err := r.Cookie("session")
+			if err != nil {
+				http.Redirect(w, r, "/register", http.StatusSeeOther)
+				return
+			}
+			user, err := db.GetSessionUser(cookie.Value)
+			if err != nil || user == nil {
+				http.Redirect(w, r, "/register", http.StatusSeeOther)
+				return
+			}
+			render(w, page, user)
+		}
+	}
 
-	http.HandleFunc("/wallet", func(w http.ResponseWriter, r *http.Request) {
-		render(w, "wallet.html", nil)
-	})
+	http.HandleFunc("/dashboard", renderSecuredPage("dashboard.html"))
+	http.HandleFunc("/wallet", renderSecuredPage("wallet.html"))
+	http.HandleFunc("/rewards", renderSecuredPage("rewards.html"))
+	http.HandleFunc("/tasks", renderSecuredPage("tasks.html"))
+	http.HandleFunc("/chat", renderSecuredPage("chat.html"))
+	http.HandleFunc("/survey", renderSecuredPage("survey.html"))
+	http.HandleFunc("/profile", renderSecuredPage("profile.html"))
+	http.HandleFunc("/leaderboard", renderSecuredPage("leaderboard.html"))
 
-	http.HandleFunc("/rewards", func(w http.ResponseWriter, r *http.Request) {
-		render(w, "rewards.html", nil)
-	})
-
-	http.HandleFunc("/tasks", func(w http.ResponseWriter, r *http.Request) {
-		render(w, "tasks.html", nil)
-	})
-
-	http.HandleFunc("/chat", func(w http.ResponseWriter, r *http.Request) {
-		render(w, "chat.html", nil)
-	})
-
-	http.HandleFunc("/survey", func(w http.ResponseWriter, r *http.Request) {
-		render(w, "survey.html", nil)
-	})
-
-	http.HandleFunc("/profile", func(w http.ResponseWriter, r *http.Request) {
-		render(w, "profile.html", nil)
-	})
-
-	http.HandleFunc("/leaderboard", func(w http.ResponseWriter, r *http.Request) {
-		render(w, "leaderboard.html", nil)
-	})
-
+	// Admin Page with Restricted Access
 	http.HandleFunc("/admin", func(w http.ResponseWriter, r *http.Request) {
-		render(w, "admin.html", nil)
+		cookie, err := r.Cookie("session")
+		if err != nil {
+			http.Redirect(w, r, "/register", http.StatusSeeOther)
+			return
+		}
+		user, err := db.GetSessionUser(cookie.Value)
+		if err != nil || user == nil {
+			http.Redirect(w, r, "/register", http.StatusSeeOther)
+			return
+		}
+
+		// Restrict access to designated admin email
+		adminEmail := os.Getenv("ADMIN_EMAIL")
+		if adminEmail == "" {
+			adminEmail = "admin@globalchat.com"
+		}
+		if user.Email != adminEmail {
+			http.Error(w, "Forbidden: Admin access required", http.StatusForbidden)
+			return
+		}
+
+		render(w, "admin.html", user)
 	})
 
-	// PAYMENT ROUTE
-	http.HandleFunc("/pay/mpesa", handlers.MpesaPaymentHandler)
-http.HandleFunc("/webhook/intasend", handlers.IntaSendWebhookHandler)
-	// PORT (RENDER SAFE)
+	// 6. API ENDPOINTS
+	// Payment Routes
+	http.HandleFunc("/api/payment/stk", handlers.CloudPayPaymentHandler)
+	http.HandleFunc("/api/payment/cloudpay/webhook", handlers.CloudPayWebhookHandler)
+
+	// Work / Task Routes
+	http.HandleFunc("/api/work/complete", handlers.CompleteWorkHandler)
+
+	// Admin Payment & Membership Monitoring Routes
+	http.HandleFunc("/api/admin/payments", handlers.AdminGetPaymentsHandler)
+	http.HandleFunc("/api/admin/memberships", handlers.AdminGetMembershipsHandler)
+	http.HandleFunc("/api/admin/memberships/activate", handlers.AdminActivateMembershipHandler)
+
+	// 7. START SERVER (RENDER SAFE)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
 	log.Println("GlobalChat running on port", port)
-
-	log.Fatal(
-		http.ListenAndServe(":"+port, nil),
-	)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

@@ -8,6 +8,9 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
+
+	"globalchat/db" // Adjust if your module name in go.mod is different
 )
 
 type PaymentRequest struct {
@@ -16,42 +19,58 @@ type PaymentRequest struct {
 	Plan   string `json:"plan"`
 }
 
-type IntaSendResponse struct {
-	Invoice struct {
-		InvoiceID string `json:"invoice_id"`
-		State     string `json:"state"`
-	} `json:"invoice"`
+type CloudPayResponse struct {
+	Success bool   `json:"success"`
+	Ref     string `json:"reference"`
+	Message string `json:"message"`
+	Status  string `json:"status"`
 }
 
-type WebhookPayload struct {
-	InvoiceID string `json:"invoice_id"`
-	State     string `json:"state"`
-	Value     string `json:"value"`
-	Challenge string `json:"challenge"`
+type CloudPayWebhookPayload struct {
+	Reference string `json:"reference"`
+	Status    string `json:"status"` // "COMPLETED" or "SUCCESS"
+	Amount    int    `json:"amount"`
+	UserID    int    `json:"user_id"`
+	Plan      string `json:"plan"`
 }
 
 // -------------------------
-// STK PUSH HANDLER
+// CLOUDPAY STK PUSH HANDLER
 // -------------------------
-func MpesaPaymentHandler(w http.ResponseWriter, r *http.Request) {
+func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Method not allowed"})
+		return
+	}
+
+	// Fetch user session to bind payment to user ID
+	cookie, err := r.Cookie("session")
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Unauthorized session"})
+		return
+	}
+
+	user, err := db.GetSessionUser(cookie.Value)
+	if err != nil || user == nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Invalid session"})
 		return
 	}
 
 	var req PaymentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Invalid payload format"})
 		return
 	}
 
-	// -------------------------
-	// PHONE FORMAT (CRITICAL)
-	// -------------------------
+	// Phone formatting (254XXXXXXXXX)
 	phone := strings.TrimSpace(req.Phone)
 	phone = strings.ReplaceAll(phone, " ", "")
-
 	if strings.HasPrefix(phone, "+") {
 		phone = strings.Replace(phone, "+", "", 1)
 	}
@@ -59,112 +78,106 @@ func MpesaPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		phone = "254" + phone[1:]
 	}
 
-	log.Println("FORMATTED PHONE:", phone)
+	apiKey := os.Getenv("CLOUDPAY_API_KEY")
+	merchantID := os.Getenv("CLOUDPAY_MERCHANT_ID")
 
-	// -------------------------
-	// ENV CHECK
-	// -------------------------
-	publicKey := os.Getenv("INTASEND_PUBLIC_KEY")
-	secretKey := os.Getenv("INTASEND_SECRET_KEY")
-
-	if publicKey == "" || secretKey == "" {
-		log.Println("Missing IntaSend keys")
-		http.Error(w, "Payment not configured", http.StatusInternalServerError)
+	if apiKey == "" || merchantID == "" {
+		log.Println("Missing CloudPay API key or Merchant ID environment variables")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "CloudPay payment gateway not configured"})
 		return
 	}
 
-	// -------------------------
-	// CLEAN LIVE PAYLOAD
-	// -------------------------
 	payload := map[string]interface{}{
-		"public_key":   publicKey,
+		"merchant_id":  merchantID,
+		"phone_number": phone,
 		"amount":       req.Amount,
 		"currency":     "KES",
-		"phone_number": phone,
-		"api_ref":      "GLOBALCHAT_MEMBERSHIP",
-		"name":         "GlobalChat User",
-		"email":        "customer@globalchat.com",
+		"reference":    "MEMBERSHIP_" + user.Email,
+		"user_id":      user.ID,
+		"plan":         req.Plan,
+		"callback_url": os.Getenv("APP_URL") + "/api/payment/cloudpay/webhook",
 	}
 
 	bodyBytes, _ := json.Marshal(payload)
+	cloudPayURL := "https://api.cloudpay.co.ke/v1/stkpush"
 
-	// -------------------------
-	// LIVE ENDPOINT
-	// -------------------------
-	url := "https://payment.intasend.com/api/v1/payment/mpesa-stk-push/"
-
-	reqHttp, err := http.NewRequest("POST", url, bytes.NewBuffer(bodyBytes))
+	reqHttp, err := http.NewRequest("POST", cloudPayURL, bytes.NewBuffer(bodyBytes))
 	if err != nil {
-		http.Error(w, "Request error", http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Failed to construct gateway request"})
 		return
 	}
 
 	reqHttp.Header.Set("Content-Type", "application/json")
-	reqHttp.Header.Set("Authorization", "Bearer "+secretKey)
+	reqHttp.Header.Set("Authorization", "Bearer "+apiKey)
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: 12 * time.Second}
 	resp, err := client.Do(reqHttp)
 	if err != nil {
-		log.Println("STK REQUEST FAILED:", err)
-		http.Error(w, "Payment gateway error", http.StatusInternalServerError)
+		log.Println("CLOUDPAY STK REQUEST FAILED:", err)
+		w.WriteHeader(http.StatusBadGateway)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Failed to connect to CloudPay server"})
 		return
 	}
 	defer resp.Body.Close()
 
 	responseBody, _ := io.ReadAll(resp.Body)
+	log.Println("CLOUDPAY STATUS CODE:", resp.StatusCode)
+	log.Println("CLOUDPAY RESPONSE:", string(responseBody))
 
-	log.Println("INTASEND STATUS:", resp.StatusCode)
-	log.Println("INTASEND RESPONSE:", string(responseBody))
-
-	// -------------------------
-	// RESPONSE PARSE
-	// -------------------------
-	var data IntaSendResponse
+	var data CloudPayResponse
 	_ = json.Unmarshal(responseBody, &data)
 
-	invoiceID := data.Invoice.InvoiceID
-	state := data.Invoice.State
+	if resp.StatusCode >= 400 {
+		w.WriteHeader(resp.StatusCode)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "CloudPay transaction initiation failed"})
+		return
+	}
 
-	// -------------------------
-	// CLEAN RESPONSE TO FRONTEND
-	// -------------------------
-	w.Header().Set("Content-Type", "application/json")
+	// Record pending membership record in SQLite database
+	ref := data.Ref
+	if ref == "" {
+		ref = "CLOUDPAY_" + phone
+	}
+	_ = db.CreatePendingMembership(user.ID, req.Plan, ref)
+
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success":    true,
-		"message":    "M-Pesa prompt sent. Check your phone.",
-		"invoice_id": invoiceID,
-		"status":     state,
+		"success":   true,
+		"message":   "CloudPay M-Pesa prompt sent. Check your phone.",
+		"reference": ref,
+		"status":    data.Status,
 	})
 }
 
 // -------------------------
-// WEBHOOK
+// CLOUDPAY WEBHOOK
 // -------------------------
-func IntaSendWebhookHandler(w http.ResponseWriter, r *http.Request) {
+func CloudPayWebhookHandler(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error reading body", http.StatusBadRequest)
+		return
+	}
 
-	body, _ := io.ReadAll(r.Body)
+	log.Println("CLOUDPAY WEBHOOK RECEIVED:", string(body))
 
-	log.Println("WEBHOOK:", string(body))
-
-	var payload WebhookPayload
+	var payload CloudPayWebhookPayload
 	if err := json.Unmarshal(body, &payload); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
 		return
 	}
 
-	if payload.Challenge != "" {
-		json.NewEncoder(w).Encode(map[string]string{
-			"challenge": payload.Challenge,
-		})
-		return
-	}
+	// Verify payment completion
+	if payload.Status == "COMPLETED" || payload.Status == "SUCCESS" {
+		log.Println("CLOUDPAY PAYMENT SUCCESSFUL FOR REF:", payload.Reference)
 
-	if payload.State == "COMPLETED" || payload.State == "COMPLETE" {
-		log.Println("PAYMENT SUCCESS:", payload.InvoiceID)
-
-		// TODO:
-		// activate membership
-		// credit wallet
+		// Activate user membership in SQLite
+		err := db.ActivateMembership(payload.Reference)
+		if err != nil {
+			log.Println("Failed to activate membership:", err)
+		}
 	}
 
 	w.WriteHeader(http.StatusOK)
