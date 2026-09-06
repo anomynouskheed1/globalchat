@@ -1,214 +1,370 @@
-{{template "head" .}}
-{{template "nav" .}}
+package main
 
-<section class="auth-section">
-  <div class="auth-container reveal">
+import (
+"bytes"
+"encoding/json"
+"fmt"
+"html/template"
+"io"
+"log"
+"net/http"
+"os"
+"path/filepath"
+"strings"
+"time"
 
-    <div class="auth-card glass">
+"globalchat/db"
+)
 
-      <div class="auth-header">
-        <span class="logo-icon">💬</span>
-        <h2>Join GlobalChat</h2>
-        <p>Free to join. Start earning today.</p>
-      </div>
+var templates *template.Template
 
-      <div class="auth-tabs">
-        <button class="auth-tab active" onclick="switchTab('signup', this)">
-          Sign Up
-        </button>
+func loadTemplates() {
+var err error
+templates, err = template.ParseGlob("templates/*.html")
+if err != nil {
+log.Println("Template glob parsing notice:", err)
+}
+}
 
-        <button class="auth-tab" onclick="switchTab('login', this)">
-          Login
-        </button>
-      </div>
+func renderPage(w http.ResponseWriter, tmplName string, data interface{}) {
+if templates != nil {
+err := templates.ExecuteTemplate(w, tmplName, data)
+if err == nil {
+return
+}
+}
 
-      <!-- SIGNUP FORM (Native HTML POST to /register) -->
-      <form class="auth-form" id="signup" action="/register" method="POST">
+filePath := filepath.Join("templates", tmplName)
+if _, err := os.Stat(filePath); os.IsNotExist(err) {
+http.Error(w, fmt.Sprintf("Template file not found: %s", tmplName), http.StatusNotFound)
+return
+}
 
-        <div class="form-group">
-          <label>Full Name</label>
-          <input type="text" name="name" id="fullname" placeholder="Your full name" required />
-        </div>
+t, err := template.ParseFiles(filePath)
+if err != nil {
+http.Error(w, fmt.Sprintf("Template parse error: %v", err), http.StatusInternalServerError)
+return
+}
 
-        <div class="form-group">
-          <label>Email Address</label>
-          <input type="email" name="email" id="email" placeholder="you@example.com" required />
-        </div>
+filename := filepath.Base(filePath)
+if err := t.ExecuteTemplate(w, filename, data); err != nil {
+_ = t.Execute(w, data)
+}
+}
 
-        <div class="form-group">
-          <label>Phone (M-Pesa)</label>
-          <input type="tel" name="phone" id="phone" placeholder="0712345678" required />
-        </div>
+// -------------------------
+// DATA STRUCTURES
+// -------------------------
+type PaymentRequest struct {
+Phone string `json:"phone"`
+Amount int `json:"amount"`
+Plan string `json:"plan"`
+}
 
-        <div class="form-group">
-          <label>Password</label>
-          <input type="password" name="password" id="password" placeholder="Min. 8 characters" required />
-        </div>
+type CloudPayResponse struct {
+Success bool `json:"success"`
+Ref string `json:"reference"`
+Message string `json:"message"`
+Status string `json:"status"`
+}
 
-        <div class="form-check">
-          <input type="checkbox" id="terms" required />
-          <label for="terms">
-            I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
-          </label>
-        </div>
+type CloudPayWebhookPayload struct {
+Reference string `json:"reference"`
+Status string `json:"status"`
+Amount int `json:"amount"`
+UserID int `json:"user_id"`
+Plan string `json:"plan"`
+}
 
-        <button type="submit" class="btn-primary btn-full">
-          Continue To Screening →
-        </button>
+type CloudPayTokenResponse struct {
+AccessToken string `json:"access_token"`
+}
 
-      </form>
+func getCloudPayAccessToken(apiKey, merchantID string) (string, error) {
+tokenURL := "https://pay.cloud.or.ke/api/oauth/token"
+req, err := http.NewRequest("POST", tokenURL, nil)
+if err != nil {
+return "", err
+}
 
-      <!-- LOGIN FORM (Native HTML POST to /login) -->
-      <form class="auth-form hidden" id="login" action="/login" method="POST">
+req.SetBasicAuth(apiKey, merchantID)
 
-        <div class="form-group">
-          <label>Email Address</label>
-          <input type="email" name="email" id="loginEmail" placeholder="you@example.com" required />
-        </div>
+client := &http.Client{Timeout: 10 * time.Second}
+resp, err := client.Do(req)
+if err != nil {
+return "", err
+}
+defer resp.Body.Close()
 
-        <div class="form-group">
-          <label>Password</label>
-          <input type="password" name="password" id="loginPassword" placeholder="Your password" required />
-        </div>
+body, err := io.ReadAll(resp.Body)
+if err != nil {
+return "", err
+}
 
-        <div class="form-row-between">
-          <label class="form-check">
-            <input type="checkbox" /> Remember me
-          </label>
-          <a href="#" class="link-small">Forgot password?</a>
-        </div>
+if resp.StatusCode >= 400 {
+return apiKey, nil
+}
 
-        <button type="submit" class="btn-primary btn-full">
-          Login
-        </button>
+var tokResp CloudPayTokenResponse
+if err := json.Unmarshal(body, &tokResp); err != nil || tokResp.AccessToken == "" {
+return apiKey, nil
+}
 
-      </form>
+return tokResp.AccessToken, nil
+}
 
-      <div class="security-badges">
-        <span>🔒 SSL Secured</span>
-        <span>✅ Verified Platform</span>
-        <span>🛡️ GDPR Compliant</span>
-      </div>
+// -------------------------
+// CLOUDPAY PAYMENT HANDLER
+// -------------------------
+func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
+w.Header().Set("Content-Type", "application/json")
 
-    </div>
+if r.Method != http.MethodPost {
+w.WriteHeader(http.StatusMethodNotAllowed)
+_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Method not allowed"})
+return
+}
 
-  </div>
-</section>
+cookie, err := r.Cookie("gc_session")
+if err != nil {
+w.WriteHeader(http.StatusUnauthorized)
+_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Unauthorized session"})
+return
+}
 
-<script>
-  function switchTab(tabId, button) {
-    document.querySelectorAll(".auth-form").forEach(form => {
-      form.classList.add("hidden");
-    });
+user, err := db.GetSessionUser(cookie.Value)
+if err != nil || user == nil {
+w.WriteHeader(http.StatusUnauthorized)
+_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Invalid session"})
+return
+}
 
-    document.getElementById(tabId).classList.remove("hidden");
+var req PaymentRequest
+if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+w.WriteHeader(http.StatusBadRequest)
+_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Invalid payload format"})
+return
+}
 
-    document.querySelectorAll(".auth-tab").forEach(tab => {
-      tab.classList.remove("active");
-    });
+phone := strings.TrimSpace(req.Phone)
+phone = strings.ReplaceAll(phone, " ", "")
+if strings.HasPrefix(phone, "+") {
+phone = strings.Replace(phone, "+", "", 1)
+}
+if strings.HasPrefix(phone, "07") || strings.HasPrefix(phone, "01") {
+phone = "254" + phone[1:]
+}
 
-    button.classList.add("active");
-  }
-</script>
+apiKey := os.Getenv("CLOUDPAY_API_KEY")
+merchantID := os.Getenv("CLOUDPAY_MERCHANT_ID")
 
-<style>
-  .auth-section {
-    padding: 80px 20px;
-  }
+if apiKey == "" || merchantID == "" {
+log.Println("Missing CloudPay API key or Merchant ID environment variables")
+w.WriteHeader(http.StatusInternalServerError)
+_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "CloudPay payment gateway not
+configured"})
+return
+}
 
-  .auth-container {
-    max-width: 480px;
-    margin: auto;
-  }
+token, err := getCloudPayAccessToken(apiKey, merchantID)
+if err != nil {
+log.Println("Failed to retrieve CloudPay access token:", err)
+token = apiKey
+}
 
-  .auth-card {
-    padding: 40px;
-    border-radius: 24px;
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(12px);
-  }
+payload := map[string]interface{}{
+"merchant_id": merchantID,
+"phone": phone,
+"amount": req.Amount,
+"currency": "KES",
+"reference": "MEMBERSHIP_" + user.Email,
+"user_id": user.ID,
+"plan": req.Plan,
+"callback_url": os.Getenv("APP_URL") + "/api/payment/cloudpay/webhook",
+}
 
-  .auth-header {
-    text-align: center;
-    margin-bottom: 30px;
-  }
+bodyBytes, err := json.Marshal(payload)
+if err != nil {
+w.WriteHeader(http.StatusInternalServerError)
+_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Failed to encode request payload"})
+return
+}
 
-  .logo-icon {
-    font-size: 42px;
-  }
+cloudPayURL := "https://pay.cloud.or.ke/api/payments/mpesa/stkpush"
 
-  .auth-tabs {
-    display: flex;
-    margin-bottom: 30px;
-    gap: 10px;
-  }
+reqHttp, err := http.NewRequest("POST", cloudPayURL, bytes.NewBuffer(bodyBytes))
+if err != nil {
+w.WriteHeader(http.StatusInternalServerError)
+_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Failed to construct gateway
+request"})
+return
+}
 
-  .auth-tab {
-    flex: 1;
-    padding: 12px;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    background: #1e1e1e;
-    color: white;
-  }
+reqHttp.Header.Set("Content-Type", "application/json")
+reqHttp.Header.Set("Authorization", "Bearer "+token)
 
-  .auth-tab.active {
-    background: #00b894;
-  }
+client := &http.Client{Timeout: 30 * time.Second}
+resp, err := client.Do(reqHttp)
+if err != nil {
+log.Println("CLOUDPAY STK REQUEST FAILED:", err)
+w.WriteHeader(http.StatusBadGateway)
+_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Failed to connect to CloudPay
+server"})
+return
+}
+defer resp.Body.Close()
 
-  .auth-form.hidden {
-    display: none;
-  }
+responseBody, _ := io.ReadAll(resp.Body)
+log.Println("CLOUDPAY STATUS CODE:", resp.StatusCode)
+log.Println("CLOUDPAY RESPONSE:", string(responseBody))
 
-  .form-group {
-    margin-bottom: 20px;
-  }
+var data CloudPayResponse
+_ = json.Unmarshal(responseBody, &data)
 
-  .form-group label {
-    display: block;
-    margin-bottom: 8px;
-  }
+if resp.StatusCode >= 400 {
+w.WriteHeader(resp.StatusCode)
+_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "CloudPay transaction initiation
+failed"})
+return
+}
 
-  .form-group input {
-    width: 100%;
-    padding: 14px;
-    border-radius: 12px;
-    border: 1px solid #333;
-    background: #111;
-    color: white;
-  }
+ref := data.Ref
+if ref == "" {
+ref = "CLOUDPAY_" + phone
+}
+if err := db.CreatePendingMembership(user.ID, req.Plan, ref); err != nil {
+log.Println("Failed to record pending membership:", err)
+}
 
-  .form-check {
-    margin-bottom: 20px;
-    font-size: 14px;
-  }
+w.WriteHeader(http.StatusOK)
+_ = json.NewEncoder(w).Encode(map[string]interface{}{
+"success": true,
+"message": "CloudPay M-Pesa prompt sent. Check your phone.",
+"reference": ref,
+"status": data.Status,
+})
+}
 
-  .btn-primary {
-    width: 100%;
-    padding: 14px;
-    border: none;
-    border-radius: 12px;
-    background: #00b894;
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
-  }
+// -------------------------
+// CLOUDPAY WEBHOOK HANDLER
+// -------------------------
+func CloudPayWebhookHandler(w http.ResponseWriter, r *http.Request) {
+body, err := io.ReadAll(r.Body)
+if err != nil {
+http.Error(w, "Error reading body", http.StatusBadRequest)
+return
+}
 
-  .form-row-between {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-  }
+log.Println("CLOUDPAY WEBHOOK RECEIVED:", string(body))
 
-  .security-badges {
-    margin-top: 30px;
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    font-size: 13px;
-  }
-</style>
+var payload CloudPayWebhookPayload
+if err := json.Unmarshal(body, &payload); err != nil {
+http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+return
+}
 
-{{template "footer" .}}
+if payload.Status == "COMPLETED" || payload.Status == "SUCCESS" {
+log.Println("CLOUDPAY PAYMENT SUCCESSFUL FOR REF:", payload.Reference)
+if err := db.ActivateMembership(payload.Reference); err != nil {
+log.Println("Failed to activate membership:", err)
+}
+}
+
+w.WriteHeader(http.StatusOK)
+}
+
+// -------------------------
+// SERVER ENTRYPOINT
+// -------------------------
+func main() {
+db.Init()
+loadTemplates()
+
+// Static Files (CSS, JS, Images)
+fs := http.FileServer(http.Dir("static"))
+http.Handle("/static/", http.StripPrefix("/static/", fs))
+
+// Catch-all route for pages (e.g., /wallet -> wallet.html)
+http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+if r.URL.Path != "/" {
+tmplName := strings.TrimPrefix(r.URL.Path, "/")
+if !strings.HasSuffix(tmplName, ".html") {
+tmplName += ".html"
+}
+renderPage(w, tmplName, nil)
+return
+}
+renderPage(w, "index.html", nil)
+})
+
+// /register and /login both use register.html template
+http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
+if r.Method == http.MethodPost {
+_ = r.ParseForm()
+http.Redirect(w, r, "/screening", http.StatusSeeOther)
+return
+}
+renderPage(w, "register.html", nil)
+})
+
+http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+if r.Method == http.MethodPost {
+_ = r.ParseForm()
+http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+return
+}
+renderPage(w, "register.html", nil)
+})
+
+http.HandleFunc("/screening", func(w http.ResponseWriter, r *http.Request) {
+renderPage(w, "screening.html", nil)
+})
+
+http.HandleFunc("/dashboard", func(w http.ResponseWriter, r *http.Request) {
+cookie, err := r.Cookie("gc_session")
+if err != nil {
+http.Redirect(w, r, "/login", http.StatusSeeOther)
+return
+}
+
+user, err := db.GetSessionUser(cookie.Value)
+if err != nil || user == nil {
+http.Redirect(w, r, "/login", http.StatusSeeOther)
+return
+}
+
+renderPage(w, "dashboard.html", user)
+})
+
+http.HandleFunc("/pricing", func(w http.ResponseWriter, r *http.Request) {
+renderPage(w, "pricing.html", nil)
+})
+
+http.HandleFunc("/chat", func(w http.ResponseWriter, r *http.Request) {
+cookie, err := r.Cookie("gc_session")
+if err != nil {
+http.Redirect(w, r, "/login", http.StatusSeeOther)
+return
+}
+
+user, err := db.GetSessionUser(cookie.Value)
+if err != nil || user == nil {
+http.Redirect(w, r, "/login", http.StatusSeeOther)
+return
+}
+
+renderPage(w, "chat.html", user)
+})
+
+// Payment Endpoints
+http.HandleFunc("/api/payment/cloudpay/stk", CloudPayPaymentHandler)
+http.HandleFunc("/api/payment/cloudpay/webhook", CloudPayWebhookHandler)
+
+port := os.Getenv("PORT")
+if port == "" {
+port = "10000"
+}
+
+log.Println("GlobalChat server running on port " + port)
+log.Fatal(http.ListenAndServe(":"+port, nil))
+}
