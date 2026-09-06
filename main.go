@@ -19,12 +19,24 @@ func loadTemplates() {
 	templates = template.Must(template.ParseGlob("templates/*.html"))
 }
 
-// RENDER FUNCTION
+// RENDER FUNCTION (UPDATED)
 func render(w http.ResponseWriter, tmpl string, data interface{}) {
+	// Try executing from preloaded templates first
 	err := templates.ExecuteTemplate(w, tmpl, data)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Println("Template render error:", err)
+		log.Println("Global template execution failed for", tmpl, ":", err, "- Falling back to direct parse")
+
+		// Fallback: Parse the specific file directly
+		t, parseErr := template.ParseFiles("templates/" + tmpl)
+		if parseErr != nil {
+			http.Error(w, "Template error: "+parseErr.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if execErr := t.Execute(w, data); execErr != nil {
+			http.Error(w, execErr.Error(), http.StatusInternalServerError)
+			log.Println("Fallback render error:", execErr)
+		}
 	}
 }
 
