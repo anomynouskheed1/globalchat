@@ -168,7 +168,21 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			log.Printf("CLOUDPAY REDIRECT: Method=%s, URL=%s", req.Method, req.URL.String())
+			log.Printf(
+				"CLOUDPAY REDIRECT: Method=%s URL=%s",
+				req.Method,
+				req.URL.String(),
+			)
+
+			for i, previous := range via {
+				log.Printf(
+					"CLOUDPAY REDIRECT HISTORY %d: Method=%s URL=%s",
+					i,
+					previous.Method,
+					previous.URL.String(),
+				)
+			}
+
 			return http.ErrUseLastResponse
 		},
 	}
@@ -182,6 +196,13 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 	defer resp.Body.Close()
 
 	responseBody, _ := io.ReadAll(resp.Body)
+	log.Printf(
+		"CLOUDPAY FINAL RESPONSE: Method=%s URL=%s Status=%d",
+		resp.Request.Method,
+		resp.Request.URL.String(),
+		resp.StatusCode,
+	)
+
 	log.Println("CLOUDPAY STATUS CODE:", resp.StatusCode)
 	log.Println("CLOUDPAY RESPONSE:", string(responseBody))
 
