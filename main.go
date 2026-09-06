@@ -16,31 +16,36 @@ var templates *template.Template
 
 // LOAD TEMPLATES
 func loadTemplates() {
-	templates = template.Must(template.ParseGlob("templates/*.html"))
+	var err error
+	templates, err = template.ParseGlob("templates/*.html")
+	if err != nil {
+		log.Println("Error parsing templates on startup:", err)
+	}
 }
 
-// RENDER FUNCTION (UPDATED)
+// RENDER FUNCTION
 func render(w http.ResponseWriter, tmpl string, data interface{}) {
 	// Try executing from preloaded templates first
 	err := templates.ExecuteTemplate(w, tmpl, data)
 	if err != nil {
-		log.Println("Global template execution failed for", tmpl, ":", err, "- Falling back to direct parse")
+		log.Printf("Execution failed for template %s: %v. Attempting full re-parse...", tmpl, err)
 
-		// Fallback: Parse the specific file directly
-		t, parseErr := template.ParseFiles("templates/" + tmpl)
+		// Fallback: Re-parse all templates so partials like head/nav/footer are available
+		t, parseErr := template.ParseGlob("templates/*.html")
 		if parseErr != nil {
-			http.Error(w, "Template error: "+parseErr.Error(), http.StatusInternalServerError)
+			http.Error(w, "Template parse error: "+parseErr.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		if execErr := t.Execute(w, data); execErr != nil {
-			http.Error(w, execErr.Error(), http.StatusInternalServerError)
-			log.Println("Fallback render error:", execErr)
+		execErr := t.ExecuteTemplate(w, tmpl, data)
+		if execErr != nil {
+			log.Printf("Fallback execution error for %s: %v", tmpl, execErr)
+			http.Error(w, "Template execution error: "+execErr.Error(), http.StatusInternalServerError)
 		}
 	}
 }
 
-// INIT ENV (SAFE FOR PROD)
+// INIT ENV
 func init() {
 	err := godotenv.Load()
 	if err != nil {
@@ -80,7 +85,13 @@ func main() {
 	renderSecuredPage := func(page string) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			user := handlers.GetCurrentUser(r)
-			render(w, page, user)
+
+			// Wrap user in data map so templates can evaluate .User
+			data := map[string]interface{}{
+				"User": user,
+			}
+
+			render(w, page, data)
 		}
 	}
 
@@ -101,29 +112,31 @@ func main() {
 		if adminEmail == "" {
 			adminEmail = "admin@globalchat.com"
 		}
-		if user.Email != adminEmail {
+
+		if user == nil || user.Email != adminEmail {
 			http.Error(w, "Forbidden: Admin access required", http.StatusForbidden)
 			return
 		}
 
-		render(w, "admin.html", user)
+		data := map[string]interface{}{
+			"User": user,
+		}
+
+		render(w, "admin.html", data)
 	}))
 
 	// 6. API ENDPOINTS
-	// Payment Routes
 	http.HandleFunc("/api/payment/cloudpay/stk", handlers.CloudPayPaymentHandler)
 	http.HandleFunc("/api/payment/stk", handlers.CloudPayPaymentHandler)
 	http.HandleFunc("/api/payment/cloudpay/webhook", handlers.CloudPayWebhookHandler)
 
-	// Work / Task Routes
 	http.HandleFunc("/api/work/complete", handlers.CompleteWorkHandler)
 
-	// Admin Payment & Membership Monitoring Routes
 	http.HandleFunc("/api/admin/payments", handlers.AdminGetPaymentsHandler)
 	http.HandleFunc("/api/admin/memberships", handlers.AdminGetMembershipsHandler)
 	http.HandleFunc("/api/admin/memberships/activate", handlers.AdminActivateMembershipHandler)
 
-	// 7. START SERVER (RENDER SAFE)
+	// 7. START SERVER
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
