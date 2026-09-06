@@ -191,8 +191,8 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 
 	cloudPayURL := "https://pay.cloud.or.ke/api/payments/mpesa/stkpush"
 
-	// Make sure "POST" is explicitly specified here
-	reqHttp, err := http.NewRequest("POST", cloudPayURL, bytes.NewBuffer(bodyBytes))
+	// Explicitly construct the request with "POST" method and body
+	reqHttp, err := http.NewRequest(http.MethodPost, cloudPayURL, bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Failed to construct gateway request"})
@@ -201,6 +201,9 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 
 	reqHttp.Header.Set("Content-Type", "application/json")
 	reqHttp.Header.Set("Authorization", "Bearer "+token)
+
+	// Debug log to confirm method and URL before sending
+	log.Printf("SENDING CLOUDPAY REQUEST: Method=%s, URL=%s", reqHttp.Method, cloudPayURL)
 
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(reqHttp)
