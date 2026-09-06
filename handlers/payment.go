@@ -159,7 +159,7 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cloudPayURL := "https://pay.cloud.or.ke/api/payments/mpesa/stkpush"
+	cloudPayURL := "https://www.pay.cloud.or.ke/api/payments/mpesa/stkpush"
 
 	reqHttp, err := http.NewRequest("POST", cloudPayURL, bytes.NewBuffer(bodyBytes))
 	if err != nil {
