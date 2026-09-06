@@ -294,62 +294,79 @@ func main() {
 	})
 
 	// /register and /login both use register.html template
+	// Registration Route: POST saves user, sets session cookie, redirects to /screening
 	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			_ = r.ParseForm()
+			name := r.FormValue("name")
+			email := r.FormValue("email")
+			phone := r.FormValue("phone")
+			password := r.FormValue("password")
+
+			// 1. Create the user in your database
+			user, err := db.RegisterUser(name, email, phone, password)
+			if err != nil {
+				log.Println("Registration error:", err)
+				http.Redirect(w, r, "/register?error=failed", http.StatusSeeOther)
+				return
+			}
+
+			// 2. Create a session for the new user
+			sessionToken, err := db.CreateSession(user.ID)
+			if err == nil {
+				http.SetCookie(w, &http.Cookie{
+					Name:     "gc_session",
+					Value:    sessionToken,
+					Path:     "/",
+					HttpOnly: true,
+					Expires:  time.Now().Add(24 * time.Hour),
+				})
+			}
+
+			// 3. Redirect to screening as intended
 			http.Redirect(w, r, "/screening", http.StatusSeeOther)
 			return
 		}
 		renderPage(w, "register.html", nil)
 	})
 
+	// Login Route: POST authenticates user, sets session cookie, redirects straight to /dashboard
 	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			_ = r.ParseForm()
+			email := r.FormValue("email")
+			password := r.FormValue("password")
+
+			// 1. Authenticate user credentials against database
+			user, err := db.AuthenticateUser(email, password)
+			if err != nil || user == nil {
+				log.Println("Login failed for:", email)
+				http.Redirect(w, r, "/login?error=invalid", http.StatusSeeOther)
+				return
+			}
+
+			// 2. Create login session
+			sessionToken, err := db.CreateSession(user.ID)
+			if err != nil {
+				log.Println("Session creation error:", err)
+				http.Redirect(w, r, "/login?error=session", http.StatusSeeOther)
+				return
+			}
+
+			// 3. Set session cookie
+			http.SetCookie(w, &http.Cookie{
+				Name:     "gc_session",
+				Value:    sessionToken,
+				Path:     "/",
+				HttpOnly: true,
+				Expires:  time.Now().Add(24 * time.Hour),
+			})
+
+			// 4. Redirect straight to Dashboard!
 			http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 			return
 		}
 		renderPage(w, "register.html", nil)
-	})
-
-	http.HandleFunc("/screening", func(w http.ResponseWriter, r *http.Request) {
-		renderPage(w, "screening.html", nil)
-	})
-
-	http.HandleFunc("/dashboard", func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("gc_session")
-		if err != nil {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
-			return
-		}
-
-		user, err := db.GetSessionUser(cookie.Value)
-		if err != nil || user == nil {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
-			return
-		}
-
-		renderPage(w, "dashboard.html", user)
-	})
-
-	http.HandleFunc("/pricing", func(w http.ResponseWriter, r *http.Request) {
-		renderPage(w, "pricing.html", nil)
-	})
-
-	http.HandleFunc("/chat", func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("gc_session")
-		if err != nil {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
-			return
-		}
-
-		user, err := db.GetSessionUser(cookie.Value)
-		if err != nil || user == nil {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
-			return
-		}
-
-		renderPage(w, "chat.html", user)
 	})
 
 	// Payment Endpoints
