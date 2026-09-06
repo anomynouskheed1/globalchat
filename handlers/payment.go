@@ -100,7 +100,9 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	bodyBytes, _ := json.Marshal(payload)
-	cloudPayURL := "https://api.cloudpay.co.ke/v1/stkpush"
+
+	// FIXED: Updated endpoint URL to the working gateway host
+	cloudPayURL := "https://pay.cloud.or.ke/api/payments/mpesa/stkpush"
 
 	reqHttp, err := http.NewRequest("POST", cloudPayURL, bytes.NewBuffer(bodyBytes))
 	if err != nil {
@@ -112,7 +114,8 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 	reqHttp.Header.Set("Content-Type", "application/json")
 	reqHttp.Header.Set("Authorization", "Bearer "+apiKey)
 
-	client := &http.Client{Timeout: 12 * time.Second}
+	// FIXED: Increased timeout from 12s to 30s for M-Pesa processing
+	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(reqHttp)
 	if err != nil {
 		log.Println("CLOUDPAY STK REQUEST FAILED:", err)
