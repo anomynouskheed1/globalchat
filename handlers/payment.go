@@ -46,8 +46,8 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch user session to bind payment to user ID
-	cookie, err := r.Cookie("session")
+	// Fetch user session using gc_session cookie name
+	cookie, err := r.Cookie("gc_session")
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Unauthorized session"})
