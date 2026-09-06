@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -19,21 +20,38 @@ var templates *template.Template
 
 func loadTemplates() {
 	var err error
-	// Parses all HTML files in the templates directory
 	templates, err = template.ParseGlob("templates/*.html")
 	if err != nil {
-		log.Println("Template parsing notice:", err)
+		log.Println("Template glob parsing notice:", err)
 	}
 }
 
-func render(w http.ResponseWriter, tmpl string, data interface{}) {
-	if templates == nil {
-		http.Error(w, "Templates failed to load on startup", http.StatusInternalServerError)
+func renderPage(w http.ResponseWriter, tmplName string, data interface{}) {
+	// Try rendering through globally loaded templates
+	if templates != nil {
+		err := templates.ExecuteTemplate(w, tmplName, data)
+		if err == nil {
+			return
+		}
+	}
+
+	// Fallback: Parse file dynamically from disk if ExecuteTemplate fails
+	filePath := filepath.Join("templates", tmplName)
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		http.Error(w, fmt.Sprintf("Template file not found: %s", tmplName), http.StatusNotFound)
 		return
 	}
-	err := templates.ExecuteTemplate(w, tmpl, data)
+
+	t, err := template.ParseFiles(filePath)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Template execution error: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Template parse error: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Execute parsed template file directly
+	filename := filepath.Base(filePath)
+	if err := t.ExecuteTemplate(w, filename, data); err != nil {
+		_ = t.Execute(w, data)
 	}
 }
 
@@ -55,7 +73,7 @@ type CloudPayResponse struct {
 
 type CloudPayWebhookPayload struct {
 	Reference string `json:"reference"`
-	Status    string `json:"status"` // "COMPLETED" or "SUCCESS"
+	Status    string `json:"status"`
 	Amount    int    `json:"amount"`
 	UserID    int    `json:"user_id"`
 	Plan      string `json:"plan"`
@@ -65,7 +83,6 @@ type CloudPayTokenResponse struct {
 	AccessToken string `json:"access_token"`
 }
 
-// Helper function to handle OAuth authentication with CloudPay
 func getCloudPayAccessToken(apiKey, merchantID string) (string, error) {
 	tokenURL := "https://pay.cloud.or.ke/api/oauth/token"
 	req, err := http.NewRequest("POST", tokenURL, nil)
@@ -266,21 +283,43 @@ func main() {
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	// Page Routes
+	// Root Landing Handler
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
-			render(w, r.URL.Path[1:]+".html", nil)
+			// Serve matching template filename (e.g. /wallet -> wallet.html, /tasks -> tasks.html)
+			tmplName := strings.TrimPrefix(r.URL.Path, "/")
+			if !strings.HasSuffix(tmplName, ".html") {
+				tmplName += ".html"
+			}
+			renderPage(w, tmplName, nil)
 			return
 		}
-		render(w, "index.html", nil)
+		renderPage(w, "index.html", nil)
 	})
 
-	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
-		render(w, "login.html", nil)
-	})
-
+	// Registration Route: POST redirects to screening
 	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
-		render(w, "register.html", nil)
+		if r.Method == http.MethodPost {
+			_ = r.ParseForm()
+			// Redirect user directly to screening upon submitting registration
+			http.Redirect(w, r, "/screening", http.StatusSeeOther)
+			return
+		}
+		renderPage(w, "register.html", nil)
+	})
+
+	// Login Route: POST redirects to dashboard
+	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			_ = r.ParseForm()
+			http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+			return
+		}
+		renderPage(w, "login.html", nil)
+	})
+
+	http.HandleFunc("/screening", func(w http.ResponseWriter, r *http.Request) {
+		renderPage(w, "screening.html", nil)
 	})
 
 	http.HandleFunc("/dashboard", func(w http.ResponseWriter, r *http.Request) {
@@ -296,11 +335,11 @@ func main() {
 			return
 		}
 
-		render(w, "dashboard.html", user)
+		renderPage(w, "dashboard.html", user)
 	})
 
 	http.HandleFunc("/pricing", func(w http.ResponseWriter, r *http.Request) {
-		render(w, "pricing.html", nil)
+		renderPage(w, "pricing.html", nil)
 	})
 
 	http.HandleFunc("/chat", func(w http.ResponseWriter, r *http.Request) {
@@ -316,7 +355,7 @@ func main() {
 			return
 		}
 
-		render(w, "chat.html", user)
+		renderPage(w, "chat.html", user)
 	})
 
 	// Payment Endpoints
