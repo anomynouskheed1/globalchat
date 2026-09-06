@@ -119,7 +119,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	setSession(w, int(id))
-	http.Redirect(w, r, "/membership", http.StatusSeeOther)
+	http.Redirect(w, r, "/screening", http.StatusSeeOther)
 }
 
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
