@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"html/template"
 	"io"
 	"log"
 	"net/http"
@@ -13,6 +14,30 @@ import (
 	"globalchat/db"
 )
 
+var templates *template.Template
+
+func loadTemplates() {
+	var err error
+	templates, err = template.ParseGlob("templates/*.html")
+	if err != nil {
+		log.Println("Template parsing notice:", err)
+	}
+}
+
+func render(w http.ResponseWriter, tmpl string, data interface{}) {
+	if templates == nil {
+		http.Error(w, "Templates failed to load on startup", http.StatusInternalServerError)
+		return
+	}
+	err := templates.ExecuteTemplate(w, tmpl, data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// -------------------------
+// DATA TYPES
+// -------------------------
 type PaymentRequest struct {
 	Phone  string `json:"phone"`
 	Amount int    `json:"amount"`
@@ -28,14 +53,14 @@ type CloudPayResponse struct {
 
 type CloudPayWebhookPayload struct {
 	Reference string `json:"reference"`
-	Status    string `json:"status"` // "COMPLETED" or "SUCCESS"
+	Status    string `json:"status"`
 	Amount    int    `json:"amount"`
 	UserID    int    `json:"user_id"`
 	Plan      string `json:"plan"`
 }
 
 // -------------------------
-// CLOUDPAY STK PUSH HANDLER
+// CLOUDPAY STK PUSH
 // -------------------------
 func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -46,7 +71,6 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch user session using gc_session cookie name
 	cookie, err := r.Cookie("gc_session")
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -68,7 +92,6 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Phone formatting (254XXXXXXXXX)
 	phone := strings.TrimSpace(req.Phone)
 	phone = strings.ReplaceAll(phone, " ", "")
 	if strings.HasPrefix(phone, "+") {
@@ -102,11 +125,10 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 	bodyBytes, err := json.Marshal(payload)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Failed to format JSON payload"})
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Failed to serialize payment request"})
 		return
 	}
 
-	// Live API endpoint URL
 	cloudPayURL := "https://pay.cloud.or.ke/api/payments/mpesa/stkpush"
 
 	reqHttp, err := http.NewRequest("POST", cloudPayURL, bytes.NewBuffer(bodyBytes))
@@ -119,7 +141,6 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 	reqHttp.Header.Set("Content-Type", "application/json")
 	reqHttp.Header.Set("Authorization", "Bearer "+apiKey)
 
-	// Set 30 second timeout for network round-trips
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(reqHttp)
 	if err != nil {
@@ -143,7 +164,6 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Record pending membership record in SQLite database
 	ref := data.Ref
 	if ref == "" {
 		ref = "CLOUDPAY_" + phone
@@ -179,13 +199,9 @@ func CloudPayWebhookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify payment completion
 	if payload.Status == "COMPLETED" || payload.Status == "SUCCESS" {
 		log.Println("CLOUDPAY PAYMENT SUCCESSFUL FOR REF:", payload.Reference)
-
-		// Activate user membership in SQLite
-		err := db.ActivateMembership(payload.Reference)
-		if err != nil {
+		if err := db.ActivateMembership(payload.Reference); err != nil {
 			log.Println("Failed to activate membership:", err)
 		}
 	}
@@ -194,24 +210,32 @@ func CloudPayWebhookHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // -------------------------
-// APPLICATION ENTRY POINT
+// SERVER ENTRYPOINT
 // -------------------------
 func main() {
-	// Initialize Database connection
 	db.Init()
+	loadTemplates()
 
 	// Serve Static Files
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	// Register Payment Endpoints
+	// Root Route
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		render(w, "index.html", nil)
+	})
+
+	// API Routes
 	http.HandleFunc("/api/payment/cloudpay/stk", CloudPayPaymentHandler)
 	http.HandleFunc("/api/payment/cloudpay/webhook", CloudPayWebhookHandler)
 
-	// Determine Port
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "10000"
 	}
 
 	log.Println("GlobalChat server running on port " + port)
