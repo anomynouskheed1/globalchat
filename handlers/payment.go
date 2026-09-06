@@ -165,7 +165,13 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 	reqHttp.Header.Set("Content-Type", "application/json")
 	reqHttp.Header.Set("Authorization", "Bearer "+token)
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			log.Printf("CLOUDPAY REDIRECT: Method=%s, URL=%s", req.Method, req.URL.String())
+			return http.ErrUseLastResponse
+		},
+	}
 	resp, err := client.Do(reqHttp)
 	if err != nil {
 		log.Println("CLOUDPAY STK REQUEST FAILED:", err)
