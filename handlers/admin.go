@@ -4,27 +4,39 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"strings"
 
 	"globalchat/db"
 )
 
-// isAdmin checks if the user is authorized as an administrator
+// isAdmin checks if the logged-in user is authorized as an administrator.
 func isAdmin(u *db.User) bool {
-	adminEmail := os.Getenv("ADMIN_EMAIL")
-	if adminEmail != "" {
-		return u.Email == adminEmail
+	if u == nil {
+		return false
 	}
-	// Fallback to default admin check if environment variable isn't set
-	return u.Email == "admin@globalchat.com"
+
+	adminEmail := strings.TrimSpace(os.Getenv("ADMIN_EMAIL"))
+
+	if adminEmail != "" {
+		return strings.EqualFold(u.Email, adminEmail)
+	}
+
+	// Fallback admin account.
+	return strings.EqualFold(u.Email, "admin@globalchat.com")
 }
 
-// authenticateAdmin handles authentication and authorization for admin endpoints
+// authenticateAdmin verifies that the request belongs to an authenticated admin.
+//
+// IMPORTANT:
+// The rest of the application uses the "gc_session" cookie.
+// We therefore use the same cookie here.
 func authenticateAdmin(w http.ResponseWriter, r *http.Request) (*db.User, bool) {
-	cookie, err := r.Cookie("session")
-	if err != nil {
+	cookie, err := r.Cookie("gc_session")
+	if err != nil || cookie.Value == "" {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return nil, false
 	}
+
 	user, err := db.GetSessionUser(cookie.Value)
 	if err != nil || user == nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -39,8 +51,13 @@ func authenticateAdmin(w http.ResponseWriter, r *http.Request) (*db.User, bool) 
 	return user, true
 }
 
-// AdminGetPaymentsHandler serves transaction logs to the admin UI
+// AdminGetPaymentsHandler returns transaction records to the admin UI.
 func AdminGetPaymentsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	if _, ok := authenticateAdmin(w, r); !ok {
 		return
 	}
@@ -52,11 +69,23 @@ func AdminGetPaymentsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(txs)
+
+	if txs == nil {
+		txs = []db.AdminTransaction{}
+	}
+
+	if err := json.NewEncoder(w).Encode(txs); err != nil {
+		return
+	}
 }
 
-// AdminGetMembershipsHandler serves membership records to the admin UI
+// AdminGetMembershipsHandler returns membership records to the admin UI.
 func AdminGetMembershipsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	if _, ok := authenticateAdmin(w, r); !ok {
 		return
 	}
@@ -68,10 +97,18 @@ func AdminGetMembershipsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(memberships)
+
+	if memberships == nil {
+		memberships = []db.AdminMembership{}
+	}
+
+	if err := json.NewEncoder(w).Encode(memberships); err != nil {
+		return
+	}
 }
 
-// AdminActivateMembershipHandler allows manual approval of a pending membership by payment_ref
+// AdminActivateMembershipHandler allows an authenticated admin
+// to manually activate a pending membership using its payment reference.
 func AdminActivateMembershipHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -85,8 +122,16 @@ func AdminActivateMembershipHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		PaymentRef string `json:"payment_ref"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.PaymentRef == "" {
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid payload", http.StatusBadRequest)
+		return
+	}
+
+	req.PaymentRef = strings.TrimSpace(req.PaymentRef)
+
+	if req.PaymentRef == "" {
+		http.Error(w, "Payment reference is required", http.StatusBadRequest)
 		return
 	}
 
@@ -96,7 +141,8 @@ func AdminActivateMembershipHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+
+	_ = json.NewEncoder(w).Encode(map[string]string{
 		"status":  "success",
 		"message": "Membership activated successfully",
 	})

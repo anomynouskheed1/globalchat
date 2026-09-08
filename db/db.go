@@ -374,18 +374,6 @@ type AdminTransaction struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
-type AdminMembership struct {
-	ID         int        `json:"id"`
-	UserID     int        `json:"user_id"`
-	UserName   string     `json:"user_name"`
-	UserEmail  string     `json:"user_email"`
-	Plan       string     `json:"plan"`
-	Status     string     `json:"status"`
-	PaymentRef string     `json:"payment_ref"`
-	StartedAt  *time.Time `json:"started_at"`
-	ExpiresAt  *time.Time `json:"expires_at"`
-}
-
 // GetAllTransactions returns all payment/payout records for admin view
 func GetAllTransactions() ([]AdminTransaction, error) {
 	rows, err := DB.Query(`
@@ -411,27 +399,76 @@ func GetAllTransactions() ([]AdminTransaction, error) {
 	return txs, nil
 }
 
-// GetAllMemberships returns all membership subscriptions for admin view
+// AdminMembership represents a membership record for the admin dashboard.
+type AdminMembership struct {
+	ID         int        `json:"id"`
+	UserID     int        `json:"user_id"`
+	UserName   string     `json:"user_name"`
+	UserEmail  string     `json:"user_email"`
+	UserPhone  string     `json:"user_phone"`
+	Plan       string     `json:"plan"`
+	Status     string     `json:"status"`
+	PaymentRef string     `json:"payment_ref"`
+	StartedAt  *time.Time `json:"started_at"`
+	ExpiresAt  *time.Time `json:"expires_at"`
+}
+
+// GetAllMemberships returns membership/payment records for the admin dashboard.
 func GetAllMemberships() ([]AdminMembership, error) {
 	rows, err := DB.Query(`
-		SELECT m.id, m.user_id, COALESCE(u.name, ''), COALESCE(u.email, ''), 
-		       m.plan, m.status, COALESCE(m.payment_ref, ''), m.started_at, m.expires_at
+		SELECT
+			m.id,
+			m.user_id,
+			COALESCE(u.name, ''),
+			COALESCE(u.email, ''),
+			COALESCE(u.phone, ''),
+			m.plan,
+			m.status,
+			COALESCE(m.payment_ref, ''),
+			m.started_at,
+			m.expires_at
 		FROM memberships m
 		LEFT JOIN users u ON m.user_id = u.id
-		ORDER BY m.id DESC LIMIT 200
+		ORDER BY
+			CASE
+				WHEN m.status = 'active' THEN 1
+				WHEN m.status = 'pending' THEN 2
+				ELSE 3
+			END,
+			m.id DESC
+		LIMIT 200
 	`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var list []AdminMembership
+	list := make([]AdminMembership, 0)
+
 	for rows.Next() {
 		var m AdminMembership
-		if err := rows.Scan(&m.ID, &m.UserID, &m.UserName, &m.UserEmail, &m.Plan, &m.Status, &m.PaymentRef, &m.StartedAt, &m.ExpiresAt); err != nil {
+
+		if err := rows.Scan(
+			&m.ID,
+			&m.UserID,
+			&m.UserName,
+			&m.UserEmail,
+			&m.UserPhone,
+			&m.Plan,
+			&m.Status,
+			&m.PaymentRef,
+			&m.StartedAt,
+			&m.ExpiresAt,
+		); err != nil {
 			return nil, err
 		}
+
 		list = append(list, m)
 	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return list, nil
 }

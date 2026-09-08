@@ -87,6 +87,40 @@ func main() {
 				tmplName += ".html"
 			}
 
+			// Protect the admin page.
+			if tmplName == "admin.html" {
+				cookie, err := r.Cookie("gc_session")
+				if err != nil || cookie.Value == "" {
+					http.Redirect(w, r, "/login", http.StatusSeeOther)
+					return
+				}
+
+				user, err := db.GetSessionUser(cookie.Value)
+				if err != nil || user == nil {
+					http.Redirect(w, r, "/login", http.StatusSeeOther)
+					return
+				}
+
+				adminEmail := strings.TrimSpace(os.Getenv("ADMIN_EMAIL"))
+				if adminEmail == "" {
+					adminEmail = "admin@globalchat.com"
+				}
+
+				if !strings.EqualFold(user.Email, adminEmail) {
+					http.Error(
+						w,
+						"Forbidden: Admin access required",
+						http.StatusForbidden,
+					)
+					return
+				}
+
+				// The current admin template expects these fields.
+				// We will improve/populate them in the next step.
+				renderPage(w, "admin.html", nil)
+				return
+			}
+
 			renderPage(w, tmplName, nil)
 			return
 		}
@@ -236,6 +270,28 @@ func main() {
 
 		renderPage(w, "register.html", nil)
 	})
+
+	// -------------------------
+	// ADMIN API ENDPOINTS
+	// -------------------------
+
+	// Get payment transactions.
+	http.HandleFunc(
+		"/api/admin/payments",
+		handlers.AdminGetPaymentsHandler,
+	)
+
+	// Get membership/payment records.
+	http.HandleFunc(
+		"/api/admin/memberships",
+		handlers.AdminGetMembershipsHandler,
+	)
+
+	// Manually activate a pending membership.
+	http.HandleFunc(
+		"/api/admin/memberships/activate",
+		handlers.AdminActivateMembershipHandler,
+	)
 
 	// -------------------------
 	// CLOUDPAY PAYMENT ENDPOINTS

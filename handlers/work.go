@@ -29,7 +29,7 @@ func CompleteWorkHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 1. Authenticate User via Session Cookie
-	cookie, err := r.Cookie("session")
+	cookie, err := r.Cookie("gc_session")
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(WorkCompleteResponse{

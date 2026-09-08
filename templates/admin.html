@@ -3,19 +3,32 @@
 
 <section class="admin-section">
   <div class="admin-container">
+
+    ```
+    <!-- =========================
+     ADMIN HEADER
+========================== -->
     <div class="admin-header reveal">
       <div>
         <h2>⚙️ Admin Panel</h2>
         <p>Platform management, live transactions, and analytics</p>
       </div>
+
       <div class="admin-meta">
         <span class="live-badge">🔴 Live</span>
-        <span>Last updated: <span id="last-updated-time">{{ .LastUpdated }}</span></span>
+        <span>
+          Last updated:
+          <span id="last-updated-time">{{ .LastUpdated }}</span>
+        </span>
       </div>
     </div>
 
-    <!-- Admin Stats -->
+
+    <!-- =========================
+     ADMIN STATS
+========================== -->
     <div class="admin-stats reveal">
+
       <div class="admin-stat-card glass">
         <div class="stat-icon">👥</div>
         <div class="stat-info">
@@ -24,30 +37,40 @@
           <small class="green">+{{ .Stats.NewUsersToday }} today</small>
         </div>
       </div>
+
       <div class="admin-stat-card glass">
         <div class="stat-icon">💰</div>
         <div class="stat-info">
           <span>Total Paid Out</span>
           <strong>KES {{ .Stats.TotalPaidOut }}</strong>
-          <small class="green">+KES {{ .Stats.PaidOutToday }} today</small>
+          <small class="green">
+            +KES {{ .Stats.PaidOutToday }} today
+          </small>
         </div>
       </div>
+
       <div class="admin-stat-card glass">
         <div class="stat-icon">📋</div>
         <div class="stat-info">
           <span>Tasks Completed</span>
           <strong>{{ .Stats.TasksCompleted }}</strong>
-          <small class="green">+{{ .Stats.TasksToday }} today</small>
+          <small class="green">
+            +{{ .Stats.TasksToday }} today
+          </small>
         </div>
       </div>
+
       <div class="admin-stat-card glass">
         <div class="stat-icon">🚨</div>
         <div class="stat-info">
           <span>Fraud Flags</span>
           <strong>{{ .Stats.FraudFlags }}</strong>
-          <small class="red">{{ .Stats.NewFraudFlags }} new</small>
+          <small class="red">
+            {{ .Stats.NewFraudFlags }} new
+          </small>
         </div>
       </div>
+
       <div class="admin-stat-card glass">
         <div class="stat-icon">🎫</div>
         <div class="stat-info">
@@ -56,26 +79,44 @@
           <small>{{ .Stats.OpenTickets }} open</small>
         </div>
       </div>
+
       <div class="admin-stat-card glass">
         <div class="stat-icon">⭐</div>
         <div class="stat-info">
           <span>Premium Members</span>
           <strong>{{ .Stats.PremiumMembers }}</strong>
-          <small class="green">+{{ .Stats.NewPremiumToday }} today</small>
+          <small class="green">
+            +{{ .Stats.NewPremiumToday }} today
+          </small>
         </div>
       </div>
+
     </div>
 
+
+    <!-- =========================
+     ADMIN GRID
+========================== -->
     <div class="admin-grid">
 
-      <!-- User Management -->
+
+      <!-- =========================
+       USER MANAGEMENT
+  ========================== -->
       <div class="admin-card glass reveal">
+
         <div class="admin-card-header">
+
           <h3>👥 User Management</h3>
+
           <input type="text" id="userSearchInput" onkeyup="filterUsers()" placeholder="Search users..."
             class="admin-search" />
+
         </div>
+
+
         <table class="admin-table" id="usersTable">
+
           <thead>
             <tr>
               <th>User</th>
@@ -85,197 +126,1215 @@
               <th>Action</th>
             </tr>
           </thead>
+
           <tbody>
+
             {{range .Users}}
+
             <tr class="user-row">
+
               <td class="user-name-cell">
+
                 <div class="lb-member">
-                  <div class="avatar sm">{{ .Initials }}</div>
+
+                  <div class="avatar sm">
+                    {{ .Initials }}
+                  </div>
+
                   {{ .Name }}
+
                 </div>
+
               </td>
-              <td><span class="status-badge {{ .StatusClass }}">{{ .Status }}</span></td>
-              <td class="{{if gt .Earned 0}}green{{else}}red{{end}}">KES {{ .EarnedFormatted }}</td>
-              <td>{{ .JoinedDate }}</td>
+
+
               <td>
-                <a href="/admin/users/{{ .ID }}" class="btn-sm">View</a>
+                <span class="status-badge {{ .StatusClass }}">
+                  {{ .Status }}
+                </span>
+              </td>
+
+
+              <td class="{{if gt .Earned 0}}green{{else}}red{{end}}">
+                KES {{ .EarnedFormatted }}
+              </td>
+
+
+              <td>
+                {{ .JoinedDate }}
+              </td>
+
+
+              <td>
+                <a href="/admin/users/{{ .ID }}" class="btn-sm">
+                  View
+                </a>
+              </td>
+
+            </tr>
+
+            {{else}}
+
+            <tr>
+              <td colspan="5">
+                No users found.
               </td>
             </tr>
-            {{else}}
-            <tr>
-              <td colspan="5">No users found.</td>
-            </tr>
+
             {{end}}
+
           </tbody>
+
         </table>
+
       </div>
 
-      <!-- Payment & Membership Monitor -->
+
+
+      <!-- =========================
+       PAYMENT & MEMBERSHIP MONITOR
+  ========================== -->
       <div class="admin-card glass reveal">
+
         <div class="admin-card-header">
+
           <h3>💸 Payment & Subscription Monitor</h3>
+
           <div class="tab-controls">
-            <button type="button" class="btn-sm" onclick="switchPaymentTab('transactions')">Transactions</button>
-            <button type="button" class="btn-sm btn-outline"
-              onclick="switchPaymentTab('memberships')">Memberships</button>
+
+            <button type="button" id="transactions-tab-button" class="btn-sm"
+              onclick="switchPaymentTab('transactions')">
+              Transactions
+            </button>
+
+            <button type="button" id="memberships-tab-button" class="btn-sm btn-outline"
+              onclick="switchPaymentTab('memberships')">
+              Memberships
+            </button>
+
           </div>
+
         </div>
 
-        <!-- Transactions Container -->
+
+        <!-- =========================
+         TRANSACTIONS
+    ========================== -->
         <div id="transactions-tab" class="payment-monitor">
+
           <div id="pm-list">
+
             {{range .Payments}}
+
             <div class="pm-item">
+
               <div class="pm-info">
-                <strong>{{ .Type }}</strong>
-                <small>{{ .UserIdentifier }} · {{ .Detail }}</small>
+
+                <strong>
+                  {{ .Type }}
+                </strong>
+
+                <small>
+                  {{ .UserIdentifier }} · {{ .Detail }}
+                </small>
+
               </div>
-              <span class="{{if eq .Status " Flagged"}}red{{else}}green{{end}}">KES {{ .AmountFormatted }}</span>
-              <span class="status-badge {{ .StatusClass }}">{{ .Status }}</span>
+
+
+              <span class="{{if eq .Status " Flagged"}}red{{else}}green{{end}}">
+                KES {{ .AmountFormatted }}
+              </span>
+
+
+              <span class="status-badge {{ .StatusClass }}">
+                {{ .Status }}
+              </span>
+
             </div>
+
             {{else}}
-            <p style="padding:1rem;">No payments recorded yet.</p>
+
+            <p style="padding:1rem;">
+              No payments recorded yet.
+            </p>
+
             {{end}}
+
           </div>
+
         </div>
 
-        <!-- Memberships Container -->
-        <div id="memberships-tab" class="payment-monitor" style="display: none;">
+
+
+        <!-- =========================
+         MEMBERSHIPS
+    ========================== -->
+        <div id="memberships-tab" class="payment-monitor" style="display:none;">
+
           <div id="membership-list">
-            <p style="padding:1rem;">Loading active memberships...</p>
+
+            <p style="padding:1rem;">
+              Click Memberships to load subscription records.
+            </p>
+
           </div>
+
         </div>
+
       </div>
 
-      <!-- Fraud Prevention -->
+
+
+      <!-- =========================
+       FRAUD PREVENTION
+  ========================== -->
       <div class="admin-card glass reveal">
+
         <h3>🚨 Fraud Prevention</h3>
+
         <div class="fraud-list">
+
           {{range .FraudAlerts}}
+
           <div class="fraud-item {{ .Severity }}">
-            <div class="fraud-icon">{{ .Icon }}</div>
+
+            <div class="fraud-icon">
+              {{ .Icon }}
+            </div>
+
+
             <div class="fraud-info">
-              <strong>{{ .Title }}</strong>
-              <small>{{ .Description }}</small>
+
+              <strong>
+                {{ .Title }}
+              </strong>
+
+              <small>
+                {{ .Description }}
+              </small>
+
             </div>
+
+
             <div class="fraud-actions">
+
               <form action="/admin/fraud/resolve" method="POST" style="display:inline;">
+
                 <input type="hidden" name="alert_id" value="{{ .ID }}">
+
                 <input type="hidden" name="csrf_token" value="{{ $.CSRFToken }}">
-                <button type="submit" name="action" value="block" class="btn-sm btn-danger">Block</button>
-                <button type="submit" name="action" value="review" class="btn-sm btn-outline">Review</button>
+
+                <button type="submit" name="action" value="block" class="btn-sm btn-danger">
+                  Block
+                </button>
+
+                <button type="submit" name="action" value="review" class="btn-sm btn-outline">
+                  Review
+                </button>
+
               </form>
+
             </div>
+
           </div>
+
           {{else}}
-          <p style="padding:1rem;">No fraud flags detected.</p>
+
+          <p style="padding:1rem;">
+            No fraud flags detected.
+          </p>
+
           {{end}}
+
         </div>
+
       </div>
 
-      <!-- Support Tickets -->
+
+
+      <!-- =========================
+       SUPPORT TICKETS
+  ========================== -->
       <div class="admin-card glass reveal">
+
         <h3>🎫 Support Tickets</h3>
+
         <div class="ticket-list">
+
           {{range .Tickets}}
+
           <div class="ticket-item">
+
             <div class="ticket-info">
-              <strong>{{ .Subject }}</strong>
-              <small>{{ .UserName }} · {{ .TimeAgo }}</small>
+
+              <strong>
+                {{ .Subject }}
+              </strong>
+
+              <small>
+                {{ .UserName }} · {{ .TimeAgo }}
+              </small>
+
             </div>
-            <span class="status-badge {{ .StatusClass }}">{{ .Status }}</span>
-            <a href="/admin/tickets/{{ .ID }}" class="btn-sm">Reply</a>
+
+
+            <span class="status-badge {{ .StatusClass }}">
+              {{ .Status }}
+            </span>
+
+
+            <a href="/admin/tickets/{{ .ID }}" class="btn-sm">
+              Reply
+            </a>
+
           </div>
+
           {{else}}
-          <p style="padding:1rem;">No open support tickets.</p>
+
+          <p style="padding:1rem;">
+            No open support tickets.
+          </p>
+
           {{end}}
+
         </div>
+
       </div>
 
     </div>
+    ```
+
   </div>
 </section>
 
 <script>
-  // Client-side user filtering
+
+  /* =========================================================
+     USER SEARCH
+  ========================================================= */
+
   function filterUsers() {
-    const query = document.getElementById('userSearchInput').value.toLowerCase();
-    const rows = document.querySelectorAll('.user-row');
-    rows.forEach(row => {
-      const text = row.querySelector('.user-name-cell').textContent.toLowerCase();
-      row.style.display = text.includes(query) ? '' : 'none';
-    });
-  }
 
-  // Switch between Payments and Memberships views
-  function switchPaymentTab(tabName) {
-    const txTab = document.getElementById('transactions-tab');
-    const memTab = document.getElementById('memberships-tab');
+    const input =
+      document.getElementById("userSearchInput");
 
-    if (tabName === 'transactions') {
-      txTab.style.display = 'block';
-      memTab.style.display = 'none';
-    } else {
-      txTab.style.display = 'none';
-      memTab.style.display = 'block';
-      loadAdminMemberships();
+    if (!input) {
+      return;
     }
-  }
 
-  // Fetch live transactions via API
-  async function loadAdminPayments() {
-    try {
-      const res = await fetch('/api/admin/payments');
-      if (!res.ok) return;
-      const txs = await res.json();
-      if (!txs || txs.length === 0) return;
+    const query =
+      input.value.toLowerCase().trim();
 
-      const list = document.getElementById('pm-list');
-      list.innerHTML = txs.map(t => `
-      <div class="pm-item">
-        <div class="pm-info">
-          <strong>${(t.type || 'PAYMENT').toUpperCase()}</strong>
-          <small>${t.user_name || t.user_email || 'User #' + t.user_id} · ${t.description || 'N/A'}</small>
-        </div>
-        <span class="${t.status === 'flagged' || t.status === 'failed' ? 'red' : 'green'}">KES ${t.amount_kes}</span>
-        <span class="status-badge status-${(t.status || 'pending').toLowerCase()}">${t.status}</span>
-      </div>
-    `).join('');
-    } catch (err) {
-      console.error('Error fetching admin payments:', err);
-    }
-  }
+    const rows =
+      document.querySelectorAll(".user-row");
 
-  // Fetch live memberships via API
-  async function loadAdminMemberships() {
-    try {
-      const res = await fetch('/api/admin/memberships');
-      if (!res.ok) return;
-      const list = await res.json();
+    rows.forEach(function (row) {
 
-      const container = document.getElementById('membership-list');
-      if (!list || list.length === 0) {
-        container.innerHTML = '<p style="padding:1rem;">No active memberships found.</p>';
+      const cell =
+        row.querySelector(".user-name-cell");
+
+      if (!cell) {
         return;
       }
 
-      container.innerHTML = list.map(m => `
-      <div class="pm-item">
-        <div class="pm-info">
-          <strong>${(m.plan || 'MEMBERSHIP').toUpperCase()}</strong>
-          <small>${m.user_name || m.user_email || 'User #' + m.user_id} · Ref: ${m.payment_ref || 'N/A'}</small>
-        </div>
-        <span class="status-badge status-${(m.status || 'inactive').toLowerCase()}">${m.status}</span>
-      </div>
-    `).join('');
-    } catch (err) {
-      console.error('Error fetching admin memberships:', err);
-    }
+      const text =
+        cell.textContent.toLowerCase();
+
+      row.style.display =
+        text.includes(query) ? "" : "none";
+
+    });
+
   }
 
-  // Initial fetch and periodic polling
-  loadAdminPayments();
-  setInterval(loadAdminPayments, 15000);
+
+  /* =========================================================
+     PAYMENT TAB SWITCHING
+  ========================================================= */
+
+  function switchPaymentTab(tabName) {
+
+    const transactionsTab =
+      document.getElementById("transactions-tab");
+
+    const membershipsTab =
+      document.getElementById("memberships-tab");
+
+    const transactionsButton =
+      document.getElementById("transactions-tab-button");
+
+    const membershipsButton =
+      document.getElementById("memberships-tab-button");
+
+
+    if (!transactionsTab || !membershipsTab) {
+      return;
+    }
+
+
+    if (tabName === "transactions") {
+
+      transactionsTab.style.display = "block";
+      membershipsTab.style.display = "none";
+
+      if (transactionsButton) {
+        transactionsButton.classList.remove("btn-outline");
+      }
+
+      if (membershipsButton) {
+        membershipsButton.classList.add("btn-outline");
+      }
+
+      loadAdminPayments();
+
+      return;
+    }
+
+
+    if (tabName === "memberships") {
+
+      transactionsTab.style.display = "none";
+      membershipsTab.style.display = "block";
+
+      if (transactionsButton) {
+        transactionsButton.classList.add("btn-outline");
+      }
+
+      if (membershipsButton) {
+        membershipsButton.classList.remove("btn-outline");
+      }
+
+      loadAdminMemberships();
+
+    }
+
+  }
+
+
+  /* =========================================================
+     SAFE TEXT HELPER
+  ========================================================= */
+
+  function createTextElement(
+    tagName,
+    text,
+    className
+  ) {
+
+    const element =
+      document.createElement(tagName);
+
+    if (className) {
+      element.className = className;
+    }
+
+    element.textContent =
+      text == null ? "" : String(text);
+
+    return element;
+  }
+
+
+  /* =========================================================
+     LOAD ADMIN PAYMENTS
+  ========================================================= */
+
+  async function loadAdminPayments() {
+
+    try {
+
+      const response =
+        await fetch(
+          "/api/admin/payments",
+          {
+            method: "GET",
+            credentials: "same-origin",
+            headers: {
+              "Accept": "application/json"
+            },
+            cache: "no-store"
+          }
+        );
+
+
+      /*
+       * IMPORTANT:
+       *
+       * If the admin session is missing, the backend
+       * should return 401/403.
+       *
+       * We don't display fake payment information.
+       */
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+
+        console.warn(
+          "Admin authorization required."
+        );
+
+        return;
+      }
+
+
+      if (!response.ok) {
+
+        console.error(
+          "Admin payments request failed:",
+          response.status
+        );
+
+        return;
+      }
+
+
+      const transactions =
+        await response.json();
+
+
+      const list =
+        document.getElementById("pm-list");
+
+
+      if (!list) {
+        return;
+      }
+
+
+      list.innerHTML = "";
+
+
+      if (
+        !Array.isArray(transactions) ||
+        transactions.length === 0
+      ) {
+
+        const empty =
+          createTextElement(
+            "p",
+            "No payment transactions recorded yet."
+          );
+
+        empty.style.padding = "1rem";
+
+        list.appendChild(empty);
+
+        updateLastUpdated();
+
+        return;
+      }
+
+
+      transactions.forEach(function (transaction) {
+
+        const item =
+          document.createElement("div");
+
+        item.className =
+          "pm-item";
+
+
+        /*
+         * Payment information
+         */
+
+        const info =
+          document.createElement("div");
+
+        info.className =
+          "pm-info";
+
+
+        const type =
+          createTextElement(
+            "strong",
+            (
+              transaction.type ||
+              "PAYMENT"
+            ).toUpperCase()
+          );
+
+
+        let userText =
+          "User #" +
+          (
+            transaction.user_id ||
+            ""
+          );
+
+
+        if (transaction.user_name) {
+
+          userText =
+            transaction.user_name;
+
+        } else if (transaction.user_email) {
+
+          userText =
+            transaction.user_email;
+
+        }
+
+
+        const detailText =
+          transaction.description ||
+          "No description";
+
+
+        const detail =
+          createTextElement(
+            "small",
+            userText +
+            " · " +
+            detailText
+          );
+
+
+        info.appendChild(type);
+        info.appendChild(detail);
+
+
+        /*
+         * Amount
+         */
+
+        const amount =
+          Number(
+            transaction.amount_kes || 0
+          );
+
+
+        const amountElement =
+          createTextElement(
+            "span",
+            "KES " +
+            amount.toLocaleString()
+          );
+
+
+        const status =
+          String(
+            transaction.status ||
+            "pending"
+          );
+
+
+        const normalizedStatus =
+          status.toLowerCase();
+
+
+        if (
+          normalizedStatus === "flagged" ||
+          normalizedStatus === "failed"
+        ) {
+
+          amountElement.className =
+            "red";
+
+        } else {
+
+          amountElement.className =
+            "green";
+
+        }
+
+
+        /*
+         * Status
+         */
+
+        const statusElement =
+          createTextElement(
+            "span",
+            status
+          );
+
+
+        statusElement.className =
+          "status-badge status-" +
+          normalizedStatus;
+
+
+        item.appendChild(info);
+        item.appendChild(amountElement);
+        item.appendChild(statusElement);
+
+
+        list.appendChild(item);
+
+      });
+
+
+      updateLastUpdated();
+
+    } catch (error) {
+
+      console.error(
+        "Error loading admin payments:",
+        error
+      );
+
+    }
+
+  }
+
+
+  /* =========================================================
+     LOAD ADMIN MEMBERSHIPS
+  ========================================================= */
+
+  async function loadAdminMemberships() {
+
+    const container =
+      document.getElementById(
+        "membership-list"
+      );
+
+
+    if (!container) {
+      return;
+    }
+
+
+    /*
+     * Show loading state
+     */
+
+    container.innerHTML = "";
+
+
+    const loading =
+      createTextElement(
+        "p",
+        "Loading membership records..."
+      );
+
+    loading.style.padding =
+      "1rem";
+
+    container.appendChild(
+      loading
+    );
+
+
+    try {
+
+      const response =
+        await fetch(
+          "/api/admin/memberships",
+          {
+            method: "GET",
+            credentials: "same-origin",
+            headers: {
+              "Accept": "application/json"
+            },
+            cache: "no-store"
+          }
+        );
+
+
+      /*
+       * Admin protection
+       */
+
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+
+        container.innerHTML = "";
+
+        const message =
+          createTextElement(
+            "p",
+            "Admin authorization required."
+          );
+
+        message.style.padding =
+          "1rem";
+
+        container.appendChild(
+          message
+        );
+
+        return;
+      }
+
+
+      if (!response.ok) {
+
+        container.innerHTML = "";
+
+        const errorMessage =
+          createTextElement(
+            "p",
+            "Unable to load membership records."
+          );
+
+        errorMessage.style.padding =
+          "1rem";
+
+        container.appendChild(
+          errorMessage
+        );
+
+        console.error(
+          "Membership request failed:",
+          response.status
+        );
+
+        return;
+      }
+
+
+      const memberships =
+        await response.json();
+
+
+      container.innerHTML = "";
+
+
+      if (
+        !Array.isArray(memberships) ||
+        memberships.length === 0
+      ) {
+
+        const empty =
+          createTextElement(
+            "p",
+            "No membership records found."
+          );
+
+        empty.style.padding =
+          "1rem";
+
+        container.appendChild(
+          empty
+        );
+
+        updateLastUpdated();
+
+        return;
+      }
+
+
+      memberships.forEach(function (membership) {
+
+        const item =
+          document.createElement("div");
+
+        item.className =
+          "pm-item";
+
+
+        /*
+         * Membership information
+         */
+
+        const info =
+          document.createElement("div");
+
+        info.className =
+          "pm-info";
+
+
+        const plan =
+          createTextElement(
+            "strong",
+            (
+              membership.plan ||
+              "MEMBERSHIP"
+            ).toUpperCase()
+          );
+
+
+        let userText =
+          "User #" +
+          (
+            membership.user_id ||
+            ""
+          );
+
+
+        if (membership.user_name) {
+
+          userText =
+            membership.user_name;
+
+        } else if (membership.user_email) {
+
+          userText =
+            membership.user_email;
+
+        }
+
+
+        const paymentRef =
+          membership.payment_ref ||
+          "N/A";
+
+
+        const detail =
+          createTextElement(
+            "small",
+            userText +
+            " · Ref: " +
+            paymentRef
+          );
+
+
+        info.appendChild(plan);
+        info.appendChild(detail);
+
+
+        /*
+         * Membership status
+         */
+
+        const status =
+          String(
+            membership.status ||
+            "inactive"
+          );
+
+
+        const normalizedStatus =
+          status.toLowerCase();
+
+
+        const statusElement =
+          createTextElement(
+            "span",
+            status
+          );
+
+
+        statusElement.className =
+          "status-badge status-" +
+          normalizedStatus;
+
+
+        item.appendChild(info);
+        item.appendChild(statusElement);
+
+
+        /*
+         * If membership has an expiry date,
+         * show it to the administrator.
+         */
+
+        if (membership.expires_at) {
+
+          const expiry =
+            document.createElement("small");
+
+          expiry.style.marginLeft =
+            "0.5rem";
+
+          expiry.textContent =
+            "Expires: " +
+            formatDate(
+              membership.expires_at
+            );
+
+          item.appendChild(
+            expiry
+          );
+
+        }
+
+
+        /*
+         * Pending membership gets an
+         * Activate button.
+         */
+
+        if (
+          normalizedStatus === "pending" &&
+          membership.payment_ref
+        ) {
+
+          const activateButton =
+            document.createElement("button");
+
+          activateButton.type =
+            "button";
+
+          activateButton.className =
+            "btn-sm";
+
+          activateButton.textContent =
+            "Activate";
+
+          activateButton.style.marginLeft =
+            "0.5rem";
+
+
+          activateButton.addEventListener(
+            "click",
+            function () {
+
+              activateMembership(
+                membership.payment_ref,
+                activateButton
+              );
+
+            }
+          );
+
+
+          item.appendChild(
+            activateButton
+          );
+
+        }
+
+
+        container.appendChild(item);
+
+      });
+
+
+      updateLastUpdated();
+
+    } catch (error) {
+
+      console.error(
+        "Error loading memberships:",
+        error
+      );
+
+
+      container.innerHTML = "";
+
+      const errorMessage =
+        createTextElement(
+          "p",
+          "Error loading membership records."
+        );
+
+      errorMessage.style.padding =
+        "1rem";
+
+      container.appendChild(
+        errorMessage
+      );
+
+    }
+
+  }
+
+
+  /* =========================================================
+     ACTIVATE MEMBERSHIP
+  ========================================================= */
+
+  async function activateMembership(
+    paymentRef,
+    button
+  ) {
+
+    if (!paymentRef) {
+      return;
+    }
+
+
+    const confirmed =
+      window.confirm(
+        "Activate membership for payment reference " +
+        paymentRef +
+        "?"
+      );
+
+
+    if (!confirmed) {
+      return;
+    }
+
+
+    if (button) {
+
+      button.disabled =
+        true;
+
+      button.textContent =
+        "Activating...";
+
+    }
+
+
+    try {
+
+      const response =
+        await fetch(
+          "/api/admin/memberships/activate",
+          {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+              "Content-Type":
+                "application/json",
+              "Accept":
+                "application/json"
+            },
+            body: JSON.stringify({
+              payment_ref: paymentRef
+            })
+          }
+        );
+
+
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+
+        alert(
+          "You are not authorized to perform this action."
+        );
+
+        return;
+      }
+
+
+      if (!response.ok) {
+
+        const text =
+          await response.text();
+
+        console.error(
+          "Activation failed:",
+          text
+        );
+
+        alert(
+          "Failed to activate membership."
+        );
+
+        return;
+      }
+
+
+      alert(
+        "Membership activated successfully."
+      );
+
+
+      /*
+       * Reload the membership list
+       */
+
+      await loadAdminMemberships();
+
+
+    } catch (error) {
+
+      console.error(
+        "Membership activation error:",
+        error
+      );
+
+      alert(
+        "Could not connect to the server."
+      );
+
+    } finally {
+
+      if (button) {
+
+        button.disabled =
+          false;
+
+        button.textContent =
+          "Activate";
+
+      }
+
+    }
+
+  }
+
+
+  /* =========================================================
+     DATE FORMATTER
+  ========================================================= */
+
+  function formatDate(value) {
+
+    if (!value) {
+      return "";
+    }
+
+
+    const date =
+      new Date(value);
+
+
+    if (Number.isNaN(
+      date.getTime()
+    )) {
+
+      return String(value);
+
+    }
+
+
+    return date.toLocaleString();
+
+  }
+
+
+  /* =========================================================
+     LAST UPDATED
+  ========================================================= */
+
+  function updateLastUpdated() {
+
+    const element =
+      document.getElementById(
+        "last-updated-time"
+      );
+
+
+    if (!element) {
+      return;
+    }
+
+
+    element.textContent =
+      new Date().toLocaleTimeString();
+
+  }
+
+
+  /* =========================================================
+     INITIAL LOAD
+  ========================================================= */
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+      /*
+       * Load transactions immediately.
+       */
+
+      loadAdminPayments();
+
+
+      /*
+       * Refresh transactions every 15 seconds.
+       */
+
+      setInterval(
+        loadAdminPayments,
+        15000
+      );
+
+    }
+  );
+
 </script>
 
 {{template "footer" .}}
