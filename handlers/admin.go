@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"globalchat/db"
+	"globalchat/supabase"
 )
 
 // isAdmin checks if the logged-in user is authorized as an administrator.
@@ -21,15 +22,10 @@ func isAdmin(u *db.User) bool {
 		return strings.EqualFold(u.Email, adminEmail)
 	}
 
-	// Fallback admin account.
 	return strings.EqualFold(u.Email, "admin@globalchat.com")
 }
 
 // authenticateAdmin verifies that the request belongs to an authenticated admin.
-//
-// IMPORTANT:
-// The rest of the application uses the "gc_session" cookie.
-// We therefore use the same cookie here.
 func authenticateAdmin(w http.ResponseWriter, r *http.Request) (*db.User, bool) {
 	cookie, err := r.Cookie("gc_session")
 	if err != nil || cookie.Value == "" {
@@ -51,7 +47,7 @@ func authenticateAdmin(w http.ResponseWriter, r *http.Request) (*db.User, bool) 
 	return user, true
 }
 
-// AdminGetPaymentsHandler returns transaction records to the admin UI.
+// AdminGetPaymentsHandler returns payment records from Supabase.
 func AdminGetPaymentsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -62,24 +58,24 @@ func AdminGetPaymentsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txs, err := db.GetAllTransactions()
+	payments, err := supabase.GetAdminPayments()
 	if err != nil {
-		http.Error(w, "Database query error", http.StatusInternalServerError)
+		http.Error(w, "Failed to load payment records", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 
-	if txs == nil {
-		txs = []db.AdminTransaction{}
+	if payments == nil {
+		payments = []supabase.AdminPayment{}
 	}
 
-	if err := json.NewEncoder(w).Encode(txs); err != nil {
+	if err := json.NewEncoder(w).Encode(payments); err != nil {
 		return
 	}
 }
 
-// AdminGetMembershipsHandler returns membership records to the admin UI.
+// AdminGetMembershipsHandler returns membership records from Supabase.
 func AdminGetMembershipsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -90,16 +86,16 @@ func AdminGetMembershipsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	memberships, err := db.GetAllMemberships()
+	memberships, err := supabase.GetAdminMemberships()
 	if err != nil {
-		http.Error(w, "Database query error", http.StatusInternalServerError)
+		http.Error(w, "Failed to load membership records", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 
 	if memberships == nil {
-		memberships = []db.AdminMembership{}
+		memberships = []supabase.AdminMembership{}
 	}
 
 	if err := json.NewEncoder(w).Encode(memberships); err != nil {
@@ -107,8 +103,7 @@ func AdminGetMembershipsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// AdminActivateMembershipHandler allows an authenticated admin
-// to manually activate a pending membership using its payment reference.
+// AdminActivateMembershipHandler activates a membership in Supabase.
 func AdminActivateMembershipHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -135,7 +130,7 @@ func AdminActivateMembershipHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.ActivateMembership(req.PaymentRef); err != nil {
+	if err := supabase.ActivateMembership(req.PaymentRef); err != nil {
 		http.Error(w, "Failed to activate membership", http.StatusInternalServerError)
 		return
 	}
