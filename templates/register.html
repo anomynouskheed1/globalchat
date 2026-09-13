@@ -13,69 +13,103 @@
       </div>
 
       <div class="auth-tabs">
-        <button class="auth-tab active" onclick="switchTab('signup', this)">
+        <button type="button" class="auth-tab active" onclick="switchTab('signup', this)">
           Sign Up
         </button>
 
-        <button class="auth-tab" onclick="switchTab('login', this)">
+        <button type="button" class="auth-tab" onclick="switchTab('login', this)">
           Login
         </button>
       </div>
 
-      <!-- SIGNUP FORM (Native HTML POST to /register) -->
-      <form class="auth-form" id="signup" action="/register" method="POST">
+      <!-- SIGNUP FORM -->
+      <form class="auth-form" id="signup" action="/register" method="POST" novalidate>
 
         <div class="form-group">
-          <label>Full Name</label>
-          <input type="text" name="name" id="fullname" placeholder="Your full name" required />
+          <label for="fullname">Full Name</label>
+
+          <input type="text" name="name" id="fullname" placeholder="Your full name" minlength="2" maxlength="100"
+            autocomplete="name" required />
+
+          <small class="field-error" id="nameError"></small>
         </div>
 
         <div class="form-group">
-          <label>Email Address</label>
-          <input type="email" name="email" id="email" placeholder="you@example.com" required />
+          <label for="email">Email Address</label>
+
+          <input type="email" name="email" id="email" placeholder="you@example.com" maxlength="254" autocomplete="email"
+            required />
+
+          <small class="field-error" id="emailError"></small>
         </div>
 
         <div class="form-group">
-          <label>Phone (M-Pesa)</label>
-          <input type="tel" name="phone" id="phone" placeholder="0712345678" required />
+          <label for="phone">Phone (M-Pesa)</label>
+
+          <input type="tel" name="phone" id="phone" placeholder="+254712345678" autocomplete="tel" maxlength="20"
+            required />
+
+          <small class="field-hint">
+            Example: +254712345678 or 0712345678
+          </small>
+
+          <small class="field-error" id="phoneError"></small>
         </div>
 
         <div class="form-group">
-          <label>Password</label>
-          <input type="password" name="password" id="password" placeholder="Min. 8 characters" required />
+          <label for="password">Password</label>
+
+          <input type="password" name="password" id="password" placeholder="Min. 8 characters" minlength="8"
+            maxlength="128" autocomplete="new-password" required />
+
+          <small class="field-error" id="passwordError"></small>
         </div>
 
-        <div class="form-check">
-          <input type="checkbox" id="terms" required />
+        <div class="form-check terms-check">
+          <input type="checkbox" id="terms" name="terms" value="on" required />
+
           <label for="terms">
-            I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+            I agree to the
+            <a href="#">Terms of Service</a>
+            and
+            <a href="#">Privacy Policy</a>
           </label>
         </div>
 
-        <button type="submit" class="btn-primary btn-full">
+        <small class="field-error" id="termsError"></small>
+
+        <button type="submit" class="btn-primary btn-full" id="signupButton">
           Continue To Screening →
         </button>
 
       </form>
 
-      <!-- LOGIN FORM (Native HTML POST to /login) -->
+      <!-- LOGIN FORM -->
       <form class="auth-form hidden" id="login" action="/login" method="POST">
 
         <div class="form-group">
-          <label>Email Address</label>
-          <input type="email" name="email" id="loginEmail" placeholder="you@example.com" required />
+          <label for="loginEmail">Email Address</label>
+
+          <input type="email" name="email" id="loginEmail" placeholder="you@example.com" autocomplete="email"
+            required />
         </div>
 
         <div class="form-group">
-          <label>Password</label>
-          <input type="password" name="password" id="loginPassword" placeholder="Your password" required />
+          <label for="loginPassword">Password</label>
+
+          <input type="password" name="password" id="loginPassword" placeholder="Your password"
+            autocomplete="current-password" required />
         </div>
 
         <div class="form-row-between">
-          <label class="form-check">
-            <input type="checkbox" /> Remember me
+          <label class="form-check remember-check">
+            <input type="checkbox" name="remember" value="on" />
+            Remember me
           </label>
-          <a href="#" class="link-small">Forgot password?</a>
+
+          <a href="#" class="link-small">
+            Forgot password?
+          </a>
         </div>
 
         <button type="submit" class="btn-primary btn-full">
@@ -101,7 +135,11 @@
       form.classList.add("hidden");
     });
 
-    document.getElementById(tabId).classList.remove("hidden");
+    const selectedForm = document.getElementById(tabId);
+
+    if (selectedForm) {
+      selectedForm.classList.remove("hidden");
+    }
 
     document.querySelectorAll(".auth-tab").forEach(tab => {
       tab.classList.remove("active");
@@ -109,6 +147,148 @@
 
     button.classList.add("active");
   }
+
+  function cleanPhone(value) {
+    return value
+      .trim()
+      .replace(/[\s()-]/g, "");
+  }
+
+  function isValidPhone(value) {
+    const phone = cleanPhone(value);
+
+    // Kenya local format.
+    if (/^(07|01)\d{8}$/.test(phone)) {
+      return true;
+    }
+
+    // East African international formats.
+    return /^\+(254|256|255|250|257|211)\d{7,9}$/.test(phone);
+  }
+
+  function isValidName(value) {
+    const name = value.trim();
+
+    if (name.length < 2 || name.length > 100) {
+      return false;
+    }
+
+    // Allows letters, spaces, apostrophes and hyphens.
+    return /^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$/.test(name);
+  }
+
+  function isValidEmail(value) {
+    const email = value.trim();
+
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  function showError(id, message) {
+    const element = document.getElementById(id);
+
+    if (element) {
+      element.textContent = message;
+    }
+  }
+
+  function clearErrors() {
+    document.querySelectorAll(".field-error").forEach(element => {
+      element.textContent = "";
+    });
+  }
+
+  document
+    .getElementById("signup")
+    .addEventListener("submit", function (event) {
+
+      clearErrors();
+
+      const name = document
+        .getElementById("fullname")
+        .value
+        .trim();
+
+      const email = document
+        .getElementById("email")
+        .value
+        .trim();
+
+      const phone = document
+        .getElementById("phone")
+        .value
+        .trim();
+
+      const password = document
+        .getElementById("password")
+        .value;
+
+      const terms = document
+        .getElementById("terms")
+        .checked;
+
+      let valid = true;
+
+      // NAME
+      if (!isValidName(name)) {
+        showError(
+          "nameError",
+          "Enter a valid full name."
+        );
+
+        valid = false;
+      }
+
+      // EMAIL
+      if (!isValidEmail(email)) {
+        showError(
+          "emailError",
+          "Enter a valid email address."
+        );
+
+        valid = false;
+      }
+
+      // PHONE
+      if (!isValidPhone(phone)) {
+        showError(
+          "phoneError",
+          "Enter a valid East African phone number."
+        );
+
+        valid = false;
+      }
+
+      // PASSWORD
+      if (password.length < 8) {
+        showError(
+          "passwordError",
+          "Password must contain at least 8 characters."
+        );
+
+        valid = false;
+      }
+
+      // TERMS
+      if (!terms) {
+        showError(
+          "termsError",
+          "You must agree to the Terms and Privacy Policy."
+        );
+
+        valid = false;
+      }
+
+      if (!valid) {
+        event.preventDefault();
+        return;
+      }
+
+      const button = document.getElementById("signupButton");
+
+      button.disabled = true;
+      button.textContent = "Creating Account...";
+
+    });
 </script>
 
 <style>
@@ -177,11 +357,48 @@
     border: 1px solid #333;
     background: #111;
     color: white;
+    box-sizing: border-box;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: #00b894;
   }
 
   .form-check {
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     font-size: 14px;
+  }
+
+  .terms-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .terms-check input,
+  .remember-check input {
+    margin-top: 3px;
+    flex-shrink: 0;
+  }
+
+  .terms-check label {
+    line-height: 1.5;
+  }
+
+  .field-hint {
+    display: block;
+    margin-top: 6px;
+    color: #999;
+    font-size: 12px;
+  }
+
+  .field-error {
+    display: block;
+    min-height: 16px;
+    margin-top: 5px;
+    color: #ff7675;
+    font-size: 12px;
   }
 
   .btn-primary {
@@ -195,11 +412,23 @@
     cursor: pointer;
   }
 
+  .btn-primary:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+
   .form-row-between {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
+  }
+
+  .remember-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
   }
 
   .security-badges {

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"log"
 	"math/rand"
+	"regexp"
+	"strings"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -15,6 +17,11 @@ var (
 	ErrDailyLimitReached = errors.New("daily_limit_reached")
 )
 
+var (
+	nameRegex  = regexp.MustCompile(`^[A-Za-zÀ-ÿ]+(?:[ '-][A-Za-zÀ-ÿ]+)*$`)
+	emailRegex = regexp.MustCompile(`^[A-Za-z0-9.!#$%&'*+/=?^_` + "`" + `{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$`)
+)
+
 // ============================================================
 // DATABASE INIT
 // ============================================================
@@ -22,7 +29,6 @@ var (
 func Init() {
 	var err error
 
-	// Keep the existing database so we don't lose your local bridge data.
 	DB, err = sql.Open("sqlite3", "./globalchat.db")
 	if err != nil {
 		log.Fatal("db open:", err)
@@ -103,46 +109,41 @@ func migrate() {
 		}
 	}
 
-	// --------------------------------------------------------
-	// Compatibility checks for older databases
-	// --------------------------------------------------------
-
 	addColumnIfMissing("users", "supabase_auth_id", "TEXT")
 	addColumnIfMissing("memberships", "payment_ref", "TEXT")
 
-	// Fast Supabase Auth ID lookup.
 	_, _ = DB.Exec(`
 		CREATE UNIQUE INDEX IF NOT EXISTS idx_users_supabase_auth_id
 		ON users(supabase_auth_id)
 		WHERE supabase_auth_id IS NOT NULL
 	`)
 
-	// Fast email lookup.
 	_, _ = DB.Exec(`
 		CREATE INDEX IF NOT EXISTS idx_users_email
 		ON users(email)
 	`)
 
-	// Fast session lookup.
+	_, _ = DB.Exec(`
+		CREATE INDEX IF NOT EXISTS idx_users_phone
+		ON users(phone)
+	`)
+
 	_, _ = DB.Exec(`
 		CREATE INDEX IF NOT EXISTS idx_sessions_user_id
 		ON sessions(user_id)
 	`)
 
-	// Fast transaction lookup.
 	_, _ = DB.Exec(`
 		CREATE INDEX IF NOT EXISTS idx_transactions_user_id
 		ON transactions(user_id)
 	`)
 
-	// Fast membership lookup.
 	_, _ = DB.Exec(`
 		CREATE INDEX IF NOT EXISTS idx_memberships_user_id
 		ON memberships(user_id)
 	`)
 }
 
-// addColumnIfMissing safely adds a column to an existing SQLite table.
 func addColumnIfMissing(table, column, columnType string) {
 	var count int
 
@@ -167,6 +168,145 @@ func addColumnIfMissing(table, column, columnType string) {
 }
 
 // ============================================================
+// REGISTRATION VALIDATION
+// ============================================================
+
+// ValidateName checks that the name looks like a real person's name.
+func ValidateName(name string) bool {
+	name = strings.TrimSpace(name)
+
+	if len([]rune(name)) < 2 || len([]rune(name)) > 80 {
+		return false
+	}
+
+	return nameRegex.MatchString(name)
+}
+
+// ValidateEmail checks basic email structure.
+func ValidateEmail(email string) bool {
+	email = strings.TrimSpace(email)
+
+	if len(email) > 254 {
+		return false
+	}
+
+	return emailRegex.MatchString(email)
+}
+
+// NormalizePhone accepts common East African formats and returns
+// the international format.
+//
+// Examples:
+// 0712345678   -> +254712345678
+// 0712345678   -> +256712345678 is NOT possible to determine safely,
+//
+//	so Kenya is used for local 07/01 numbers.
+//
+// +254712345678 -> +254712345678
+// 254712345678  -> +254712345678
+func NormalizePhone(phone string) (string, error) {
+	phone = strings.TrimSpace(phone)
+
+	// Remove spaces, hyphens and brackets.
+	phone = strings.ReplaceAll(phone, " ", "")
+	phone = strings.ReplaceAll(phone, "-", "")
+	phone = strings.ReplaceAll(phone, "(", "")
+	phone = strings.ReplaceAll(phone, ")", "")
+
+	if phone == "" {
+		return "", errors.New("phone number is required")
+	}
+
+	// Convert 00 international prefix to +.
+	if strings.HasPrefix(phone, "00") {
+		phone = "+" + phone[2:]
+	}
+
+	// Already international format.
+	if strings.HasPrefix(phone, "+") {
+		if !isValidEastAfricanInternationalPhone(phone) {
+			return "", errors.New("invalid East African phone number")
+		}
+
+		return phone, nil
+	}
+
+	// Country code without +.
+	if strings.HasPrefix(phone, "254") ||
+		strings.HasPrefix(phone, "256") ||
+		strings.HasPrefix(phone, "255") ||
+		strings.HasPrefix(phone, "250") ||
+		strings.HasPrefix(phone, "257") ||
+		strings.HasPrefix(phone, "211") {
+
+		phone = "+" + phone
+
+		if !isValidEastAfricanInternationalPhone(phone) {
+			return "", errors.New("invalid East African phone number")
+		}
+
+		return phone, nil
+	}
+
+	// Kenyan local format.
+	if strings.HasPrefix(phone, "0") {
+		if len(phone) != 10 {
+			return "", errors.New("invalid phone number")
+		}
+
+		// Kenya mobile numbers commonly start 07 or 01.
+		if strings.HasPrefix(phone, "07") ||
+			strings.HasPrefix(phone, "01") {
+
+			return "+254" + phone[1:], nil
+		}
+	}
+
+	return "", errors.New("use an East African phone number with country code")
+}
+
+func isValidEastAfricanInternationalPhone(phone string) bool {
+	switch {
+	case strings.HasPrefix(phone, "+254"):
+		return validNationalLength(phone, "+254", 9)
+
+	case strings.HasPrefix(phone, "+256"):
+		return validNationalLength(phone, "+256", 9)
+
+	case strings.HasPrefix(phone, "+255"):
+		return validNationalLength(phone, "+255", 9)
+
+	case strings.HasPrefix(phone, "+250"):
+		return validNationalLength(phone, "+250", 9)
+
+	case strings.HasPrefix(phone, "+257"):
+		return validNationalLength(phone, "+257", 8)
+
+	case strings.HasPrefix(phone, "+211"):
+		return validNationalLength(phone, "+211", 9)
+
+	default:
+		return false
+	}
+}
+
+func validNationalLength(phone, prefix string, length int) bool {
+	national := strings.TrimPrefix(phone, prefix)
+
+	if len(national) != length {
+		return false
+	}
+
+	for _, r := range national {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+
+	return true
+}
+
+// ============================================================
 // USER HELPERS
 // ============================================================
 
@@ -182,6 +322,8 @@ type User struct {
 
 func CreateUser(name, email, phone, hash string) (int64, error) {
 	var id int64
+
+	email = strings.ToLower(strings.TrimSpace(email))
 
 	err := DB.QueryRow(
 		`INSERT INTO users
@@ -210,6 +352,39 @@ func CreateUser(name, email, phone, hash string) (int64, error) {
 	}
 
 	return id, nil
+}
+
+func EmailExists(email string) (bool, error) {
+	var exists int
+
+	err := DB.QueryRow(
+		`SELECT EXISTS(
+			SELECT 1 FROM users
+			WHERE LOWER(email) = LOWER(?)
+		)`,
+		strings.TrimSpace(email),
+	).Scan(&exists)
+
+	return exists == 1, err
+}
+
+func PhoneExists(phone string) (bool, error) {
+	normalized, err := NormalizePhone(phone)
+	if err != nil {
+		return false, err
+	}
+
+	var exists int
+
+	err = DB.QueryRow(
+		`SELECT EXISTS(
+			SELECT 1 FROM users
+			WHERE phone = ?
+		)`,
+		normalized,
+	).Scan(&exists)
+
+	return exists == 1, err
 }
 
 func SetSupabaseAuthID(userID int, authID string) error {
@@ -425,6 +600,11 @@ func GetActiveMembership(userID int) (*Membership, error) {
 	return m, nil
 }
 
+func HasActiveMembership(userID int) bool {
+	_, err := GetActiveMembership(userID)
+	return err == nil
+}
+
 func CreatePendingMembership(userID int, plan, ref string) error {
 	_, err := DB.Exec(
 		`INSERT INTO memberships
@@ -442,18 +622,32 @@ func ActivateMembership(ref string) error {
 	now := time.Now()
 	expires := now.AddDate(0, 1, 0)
 
-	_, err := DB.Exec(
+	result, err := DB.Exec(
 		`UPDATE memberships
 		 SET status = 'active',
 		     started_at = ?,
 		     expires_at = ?
-		 WHERE payment_ref = ?`,
+		 WHERE payment_ref = ?
+		   AND status = 'pending'`,
 		now,
 		expires,
 		ref,
 	)
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
 }
 
 // ============================================================

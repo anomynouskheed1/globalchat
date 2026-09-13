@@ -110,17 +110,12 @@ func renderPage(w http.ResponseWriter, tmplName string, data interface{}) {
 			return
 		}
 
-		// IMPORTANT:
-		// Log the actual template error instead of silently hiding it.
 		log.Printf(
 			"TEMPLATE EXECUTION ERROR [%s]: %v",
 			tmplName,
 			err,
 		)
 
-		// Once template execution has started, we may already
-		// have written part of the response. Do not attempt to
-		// render the page a second time.
 		return
 	}
 
@@ -155,6 +150,64 @@ func renderPage(w http.ResponseWriter, tmplName string, data interface{}) {
 			err,
 		)
 	}
+}
+
+// ---------------------------------------------------------
+// AUTH / MEMBERSHIP HELPERS
+// ---------------------------------------------------------
+
+func getSessionUser(r *http.Request) (*db.User, bool) {
+	cookie, err := r.Cookie("gc_session")
+
+	if err != nil || cookie.Value == "" {
+		return nil, false
+	}
+
+	user, err := db.GetSessionUser(cookie.Value)
+
+	if err != nil || user == nil {
+		return nil, false
+	}
+
+	return user, true
+}
+
+func requireLogin(w http.ResponseWriter, r *http.Request) (*db.User, bool) {
+	user, ok := getSessionUser(r)
+
+	if !ok {
+		http.Redirect(
+			w,
+			r,
+			"/login",
+			http.StatusSeeOther,
+		)
+
+		return nil, false
+	}
+
+	return user, true
+}
+
+func requireMembership(w http.ResponseWriter, r *http.Request) (*db.User, bool) {
+	user, ok := requireLogin(w, r)
+
+	if !ok {
+		return nil, false
+	}
+
+	if !db.HasActiveMembership(user.ID) {
+		http.Redirect(
+			w,
+			r,
+			"/membership",
+			http.StatusSeeOther,
+		)
+
+		return nil, false
+	}
+
+	return user, true
 }
 
 // ---------------------------------------------------------
@@ -273,181 +326,154 @@ func main() {
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 
-		if r.URL.Path != "/" {
+		if r.URL.Path == "/favicon.ico" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 
-			tmplName := strings.TrimPrefix(
-				r.URL.Path,
-				"/",
+		if r.URL.Path == "/" {
+			renderPage(
+				w,
+				"index.html",
+				nil,
 			)
+			return
+		}
 
-			if !strings.HasSuffix(
-				tmplName,
-				".html",
-			) {
-				tmplName += ".html"
+		// Remove leading slash.
+		tmplName := strings.TrimPrefix(
+			r.URL.Path,
+			"/",
+		)
+
+		// Convert /dashboard to dashboard.html.
+		if !strings.HasSuffix(
+			tmplName,
+			".html",
+		) {
+			tmplName += ".html"
+		}
+
+		// -----------------------------------------
+		// ADMIN PAGE
+		// -----------------------------------------
+
+		if tmplName == "admin.html" {
+
+			user, ok := requireLogin(w, r)
+
+			if !ok {
+				return
 			}
 
-			// -----------------------------------------
-			// ADMIN PAGE
-			// -----------------------------------------
+			adminEmail := strings.TrimSpace(
+				os.Getenv("ADMIN_EMAIL"),
+			)
 
-			if tmplName == "admin.html" {
+			if adminEmail == "" {
+				adminEmail = "admin@globalchat.com"
+			}
 
-				// Check session.
-				cookie, err := r.Cookie("gc_session")
-
-				if err != nil || cookie.Value == "" {
-					http.Redirect(
-						w,
-						r,
-						"/login",
-						http.StatusSeeOther,
-					)
-					return
-				}
-
-				// Load session user.
-				user, err := db.GetSessionUser(cookie.Value)
-
-				if err != nil || user == nil {
-					http.Redirect(
-						w,
-						r,
-						"/login",
-						http.StatusSeeOther,
-					)
-					return
-				}
-
-				// -----------------------------------------
-				// ADMIN EMAIL CHECK
-				// -----------------------------------------
-
-				adminEmail := strings.TrimSpace(
-					os.Getenv("ADMIN_EMAIL"),
-				)
-
-				if adminEmail == "" {
-					adminEmail = "admin@globalchat.com"
-				}
-
-				if !strings.EqualFold(
-					user.Email,
-					adminEmail,
-				) {
-					http.Error(
-						w,
-						"Forbidden: Admin access required",
-						http.StatusForbidden,
-					)
-					return
-				}
-
-				log.Println(
-					"ADMIN DASHBOARD REQUEST:",
-					user.Email,
-				)
-
-				// -----------------------------------------
-				// LOAD USERS
-				// -----------------------------------------
-
-				adminUsers, err := supabase.GetAdminUsers()
-
-				if err != nil {
-					log.Println(
-						"ADMIN USERS LOAD ERROR:",
-						err,
-					)
-
-					http.Error(
-						w,
-						"Failed to load admin users",
-						http.StatusInternalServerError,
-					)
-
-					return
-				}
-
-				users := buildAdminUsers(adminUsers)
-
-				// -----------------------------------------
-				// ADMIN STATS
-				// -----------------------------------------
-
-				stats := AdminStats{
-					TotalUsers:      len(adminUsers),
-					NewUsersToday:   0,
-					TotalPaidOut:    0,
-					PaidOutToday:    0,
-					TasksCompleted:  0,
-					TasksToday:      0,
-					FraudFlags:      0,
-					NewFraudFlags:   0,
-					TotalTickets:    0,
-					OpenTickets:     0,
-					PremiumMembers:  0,
-					NewPremiumToday: 0,
-				}
-
-				// -----------------------------------------
-				// EMPTY DATA FOR FEATURES NOT YET CONNECTED
-				// -----------------------------------------
-
-				payments := make(
-					[]AdminPayment,
-					0,
-				)
-
-				fraudAlerts := make(
-					[]AdminFraudAlert,
-					0,
-				)
-
-				tickets := make(
-					[]AdminTicket,
-					0,
-				)
-
-				// -----------------------------------------
-				// ADMIN PAGE DATA
-				// -----------------------------------------
-
-				adminData := AdminPageData{
-					LastUpdated: time.Now().Format(
-						"02 Jan 2006 15:04:05",
-					),
-
-					CSRFToken: "",
-
-					Users:       users,
-					Stats:       stats,
-					Payments:    payments,
-					FraudAlerts: fraudAlerts,
-					Tickets:     tickets,
-				}
-
-				log.Printf(
-					"ADMIN DASHBOARD DATA: users=%d",
-					len(users),
-				)
-
-				// -----------------------------------------
-				// RENDER
-				// -----------------------------------------
-
-				renderPage(
+			if !strings.EqualFold(
+				user.Email,
+				adminEmail,
+			) {
+				http.Error(
 					w,
-					"admin.html",
-					adminData,
+					"Forbidden: Admin access required",
+					http.StatusForbidden,
+				)
+				return
+			}
+
+			log.Println(
+				"ADMIN DASHBOARD REQUEST:",
+				user.Email,
+			)
+
+			adminUsers, err := supabase.GetAdminUsers()
+
+			if err != nil {
+				log.Println(
+					"ADMIN USERS LOAD ERROR:",
+					err,
+				)
+
+				http.Error(
+					w,
+					"Failed to load admin users",
+					http.StatusInternalServerError,
 				)
 
 				return
 			}
 
-			// -----------------------------------------
-			// OTHER HTML PAGES
-			// -----------------------------------------
+			users := buildAdminUsers(adminUsers)
+
+			stats := AdminStats{
+				TotalUsers:      len(adminUsers),
+				NewUsersToday:   0,
+				TotalPaidOut:    0,
+				PaidOutToday:    0,
+				TasksCompleted:  0,
+				TasksToday:      0,
+				FraudFlags:      0,
+				NewFraudFlags:   0,
+				TotalTickets:    0,
+				OpenTickets:     0,
+				PremiumMembers:  0,
+				NewPremiumToday: 0,
+			}
+
+			payments := make(
+				[]AdminPayment,
+				0,
+			)
+
+			fraudAlerts := make(
+				[]AdminFraudAlert,
+				0,
+			)
+
+			tickets := make(
+				[]AdminTicket,
+				0,
+			)
+
+			adminData := AdminPageData{
+				LastUpdated: time.Now().Format(
+					"02 Jan 2006 15:04:05",
+				),
+
+				CSRFToken: "",
+
+				Users:       users,
+				Stats:       stats,
+				Payments:    payments,
+				FraudAlerts: fraudAlerts,
+				Tickets:     tickets,
+			}
+
+			log.Printf(
+				"ADMIN DASHBOARD DATA: users=%d",
+				len(users),
+			)
+
+			renderPage(
+				w,
+				"admin.html",
+				adminData,
+			)
+
+			return
+		}
+
+		// -----------------------------------------
+		// LOGIN / REGISTER
+		// -----------------------------------------
+
+		if tmplName == "login.html" ||
+			tmplName == "register.html" {
 
 			renderPage(
 				w,
@@ -459,12 +485,128 @@ func main() {
 		}
 
 		// -----------------------------------------
-		// HOME PAGE
+		// SCREENING
+		// -----------------------------------------
+
+		if tmplName == "screening.html" {
+
+			user, ok := requireLogin(w, r)
+
+			if !ok {
+				return
+			}
+
+			// Already paid? No need to screen again.
+			if db.HasActiveMembership(user.ID) {
+				http.Redirect(
+					w,
+					r,
+					"/dashboard",
+					http.StatusSeeOther,
+				)
+				return
+			}
+
+			renderPage(
+				w,
+				"screening.html",
+				nil,
+			)
+
+			return
+		}
+
+		// -----------------------------------------
+		// MEMBERSHIP
+		// -----------------------------------------
+
+		if tmplName == "membership.html" {
+
+			user, ok := requireLogin(w, r)
+
+			if !ok {
+				return
+			}
+
+			// Already active.
+			if db.HasActiveMembership(user.ID) {
+				http.Redirect(
+					w,
+					r,
+					"/dashboard",
+					http.StatusSeeOther,
+				)
+				return
+			}
+
+			renderPage(
+				w,
+				"membership.html",
+				nil,
+			)
+
+			return
+		}
+
+		// -----------------------------------------
+		// DASHBOARD
+		// -----------------------------------------
+
+		if tmplName == "dashboard.html" {
+
+			_, ok := requireMembership(w, r)
+
+			if !ok {
+				return
+			}
+
+			renderPage(
+				w,
+				"dashboard.html",
+				nil,
+			)
+
+			return
+		}
+
+		// -----------------------------------------
+		// PAID USER PAGES
+		// -----------------------------------------
+
+		protectedMembershipPages := map[string]bool{
+			"tasks.html":       true,
+			"survey.html":      true,
+			"chat.html":        true,
+			"wallet.html":      true,
+			"rewards.html":     true,
+			"leaderboard.html": true,
+			"profile.html":     true,
+		}
+
+		if protectedMembershipPages[tmplName] {
+
+			_, ok := requireMembership(w, r)
+
+			if !ok {
+				return
+			}
+
+			renderPage(
+				w,
+				tmplName,
+				nil,
+			)
+
+			return
+		}
+
+		// -----------------------------------------
+		// OTHER HTML PAGES
 		// -----------------------------------------
 
 		renderPage(
 			w,
-			"index.html",
+			tmplName,
 			nil,
 		)
 	})
@@ -520,7 +662,7 @@ func main() {
 		"/api/payment/cloudpay/webhook",
 		handlers.CloudPayWebhookHandler,
 	)
-
+	http.HandleFunc("/api/membership/status", handlers.MembershipStatusHandler)
 	// -------------------------
 	// SERVER
 	// -------------------------

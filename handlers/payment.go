@@ -14,9 +14,18 @@ import (
 	"globalchat/db"
 )
 
-// -------------------------
+// ---------------------------------------------------------
+// MEMBERSHIP CONSTANTS
+// ---------------------------------------------------------
+
+const (
+	MembershipPlan   = "Premium"
+	MembershipAmount = 99
+)
+
+// ---------------------------------------------------------
 // REQUEST / RESPONSE TYPES
-// -------------------------
+// ---------------------------------------------------------
 
 type PaymentRequest struct {
 	Phone  string `json:"phone"`
@@ -39,19 +48,9 @@ type CloudPayWebhookPayload struct {
 	Plan      string `json:"plan"`
 }
 
-// CloudPay OAuth response:
-//
-// {
-//   "status": "success",
-//   "message": "Access token issued...",
-//   "data": {
-//       "access_token": "...",
-//       "token_type": "Bearer",
-//       "expires_in": 3600,
-//       "accountId": 248,
-//       "scope": "payments"
-//   }
-// }
+// ---------------------------------------------------------
+// CLOUDPAY OAUTH RESPONSE
+// ---------------------------------------------------------
 
 type CloudPayTokenResponse struct {
 	Status  string `json:"status"`
@@ -66,11 +65,15 @@ type CloudPayTokenResponse struct {
 	} `json:"data"`
 }
 
-// -------------------------
+// ---------------------------------------------------------
 // CLOUDPAY OAUTH TOKEN
-// -------------------------
+// ---------------------------------------------------------
 
-func getCloudPayAccessToken(consumerKey, consumerSecret string) (string, error) {
+func getCloudPayAccessToken(
+	consumerKey,
+	consumerSecret string,
+) (string, error) {
+
 	tokenURL := "https://www.pay.cloud.or.ke/api/oauth/token"
 
 	req, err := http.NewRequest(
@@ -84,14 +87,6 @@ func getCloudPayAccessToken(consumerKey, consumerSecret string) (string, error) 
 			err,
 		)
 	}
-
-	// CloudPay OAuth uses:
-	//
-	// username = Consumer Key
-	// password = Consumer Secret
-	//
-	// This becomes:
-	// Authorization: Basic base64(key:secret)
 
 	req.SetBasicAuth(
 		consumerKey,
@@ -130,11 +125,9 @@ func getCloudPayAccessToken(consumerKey, consumerSecret string) (string, error) 
 		resp.StatusCode,
 	)
 
-	// IMPORTANT:
-	// Do NOT log the response body here because it contains
-	// the live access token.
+	if resp.StatusCode < 200 ||
+		resp.StatusCode >= 300 {
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		log.Printf(
 			"CLOUDPAY TOKEN ERROR RESPONSE: %s",
 			string(body),
@@ -175,53 +168,27 @@ func getCloudPayAccessToken(consumerKey, consumerSecret string) (string, error) 
 	return tokenResponse.Data.AccessToken, nil
 }
 
-// -------------------------
-// PHONE NORMALIZATION
-// -------------------------
-
-func normalizeKenyanPhone(phone string) string {
-	phone = strings.TrimSpace(phone)
-
-	// Remove spaces
-	phone = strings.ReplaceAll(phone, " ", "")
-
-	// Remove dashes
-	phone = strings.ReplaceAll(phone, "-", "")
-
-	// Convert +254XXXXXXXXX -> 254XXXXXXXXX
-	if strings.HasPrefix(phone, "+") {
-		phone = strings.TrimPrefix(phone, "+")
-	}
-
-	// Convert 07XXXXXXXX -> 2547XXXXXXXX
-	if strings.HasPrefix(phone, "07") {
-		phone = "254" + phone[1:]
-	}
-
-	// Convert 01XXXXXXXX -> 2541XXXXXXXX
-	if strings.HasPrefix(phone, "01") {
-		phone = "254" + phone[1:]
-	}
-
-	return phone
-}
-
-// -------------------------
+// ---------------------------------------------------------
 // CLOUDPAY STK PUSH HANDLER
-// -------------------------
+// ---------------------------------------------------------
 
-func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
+func CloudPayPaymentHandler(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	w.Header().Set(
 		"Content-Type",
 		"application/json",
 	)
 
-	// -------------------------
+	// -----------------------------------------------------
 	// METHOD CHECK
-	// -------------------------
+	// -----------------------------------------------------
 
 	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		w.WriteHeader(
+			http.StatusMethodNotAllowed,
+		)
 
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
@@ -231,13 +198,16 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// -------------------------
+	// -----------------------------------------------------
 	// SESSION CHECK
-	// -------------------------
+	// -----------------------------------------------------
 
 	cookie, err := r.Cookie("gc_session")
-	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
+
+	if err != nil || cookie.Value == "" {
+		w.WriteHeader(
+			http.StatusUnauthorized,
+		)
 
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
@@ -250,7 +220,9 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := db.GetSessionUser(cookie.Value)
 
 	if err != nil || user == nil {
-		w.WriteHeader(http.StatusUnauthorized)
+		w.WriteHeader(
+			http.StatusUnauthorized,
+		)
 
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
@@ -260,14 +232,38 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// -------------------------
-	// READ PAYMENT REQUEST
-	// -------------------------
+	// -----------------------------------------------------
+	// ACTIVE MEMBERSHIP CHECK
+	// -----------------------------------------------------
+
+	activeMembership := db.HasActiveMembership(user.ID)
+
+	if activeMembership {
+		w.WriteHeader(
+			http.StatusConflict,
+		)
+
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"message": "You already have an active membership",
+		})
+
+		return
+	}
+
+	// -----------------------------------------------------
+	// READ REQUEST
+	// -----------------------------------------------------
 
 	var paymentReq PaymentRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&paymentReq); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+	if err := json.NewDecoder(
+		r.Body,
+	).Decode(&paymentReq); err != nil {
+
+		w.WriteHeader(
+			http.StatusBadRequest,
+		)
 
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
@@ -277,10 +273,18 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Basic validation
+	// -----------------------------------------------------
+	// PHONE VALIDATION
+	// -----------------------------------------------------
 
-	if paymentReq.Phone == "" {
-		w.WriteHeader(http.StatusBadRequest)
+	rawPhone := strings.TrimSpace(
+		paymentReq.Phone,
+	)
+
+	if rawPhone == "" {
+		w.WriteHeader(
+			http.StatusBadRequest,
+		)
 
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
@@ -290,45 +294,39 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if paymentReq.Amount <= 0 {
-		w.WriteHeader(http.StatusBadRequest)
+	phone, err := db.NormalizePhone(rawPhone)
+
+	if err != nil {
+		w.WriteHeader(
+			http.StatusBadRequest,
+		)
 
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"message": "Invalid payment amount",
+			"message": err.Error(),
 		})
 
 		return
 	}
 
-	if paymentReq.Plan == "" {
-		w.WriteHeader(http.StatusBadRequest)
-
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"message": "Payment plan is required",
-		})
-
-		return
-	}
-
-	// -------------------------
-	// NORMALIZE PHONE
-	// -------------------------
-
-	phone := normalizeKenyanPhone(paymentReq.Phone)
+	// -----------------------------------------------------
+	// NEVER TRUST CLIENT AMOUNT OR PLAN
+	// -----------------------------------------------------
 
 	log.Printf(
-		"CLOUDPAY PAYMENT: user=%d phone=%s amount=%d plan=%s",
+		"CLOUDPAY PAYMENT REQUEST: user=%d phone=%s client_amount=%d client_plan=%s",
 		user.ID,
 		phone,
 		paymentReq.Amount,
 		paymentReq.Plan,
 	)
 
-	// -------------------------
+	amount := MembershipAmount
+	plan := MembershipPlan
+
+	// -----------------------------------------------------
 	// CLOUDPAY ENVIRONMENT
-	// -------------------------
+	// -----------------------------------------------------
 
 	consumerKey := os.Getenv(
 		"CLOUDPAY_CONSUMER_KEY",
@@ -384,9 +382,9 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// -------------------------
+	// -----------------------------------------------------
 	// GET CLOUDPAY TOKEN
-	// -------------------------
+	// -----------------------------------------------------
 
 	token, err := getCloudPayAccessToken(
 		consumerKey,
@@ -411,36 +409,36 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// -------------------------
+	// -----------------------------------------------------
 	// PAYMENT REFERENCE
-	// -------------------------
+	// -----------------------------------------------------
 
 	reference := fmt.Sprintf(
 		"MEMBERSHIP_%d_%d",
 		user.ID,
-		time.Now().Unix(),
+		time.Now().UnixNano(),
 	)
 
-	// -------------------------
+	// -----------------------------------------------------
 	// CALLBACK URL
-	// -------------------------
+	// -----------------------------------------------------
 
 	callbackURL :=
 		appURL +
 			"/api/payment/cloudpay/webhook"
 
-	// -------------------------
+	// -----------------------------------------------------
 	// CLOUDPAY STK PAYLOAD
-	// -------------------------
+	// -----------------------------------------------------
 
 	payload := map[string]interface{}{
 		"merchant_id":  merchantID,
 		"phone":        phone,
-		"amount":       paymentReq.Amount,
+		"amount":       amount,
 		"currency":     "KES",
 		"reference":    reference,
 		"user_id":      user.ID,
-		"plan":         paymentReq.Plan,
+		"plan":         plan,
 		"callback_url": callbackURL,
 	}
 
@@ -466,16 +464,16 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// -------------------------
+	// -----------------------------------------------------
 	// CLOUDPAY STK URL
-	// -------------------------
+	// -----------------------------------------------------
 
 	cloudPayURL :=
 		"https://www.pay.cloud.or.ke/api/payments/mpesa/stkpush"
 
-	// -------------------------
+	// -----------------------------------------------------
 	// CREATE STK REQUEST
-	// -------------------------
+	// -----------------------------------------------------
 
 	reqHTTP, err := http.NewRequest(
 		http.MethodPost,
@@ -516,19 +514,17 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		"Bearer "+token,
 	)
 
-	// -------------------------
-	// LOG REQUEST
-	// -------------------------
+	// -----------------------------------------------------
+	// SEND STK REQUEST
+	// -----------------------------------------------------
 
 	log.Printf(
-		"SENDING CLOUDPAY REQUEST: Method=%s, URL=%s",
+		"SENDING CLOUDPAY REQUEST: Method=%s URL=%s amount=%d plan=%s",
 		reqHTTP.Method,
 		reqHTTP.URL.String(),
+		amount,
+		plan,
 	)
-
-	// -------------------------
-	// SEND STK REQUEST
-	// -------------------------
 
 	client := &http.Client{
 		Timeout: 30 * time.Second,
@@ -543,11 +539,6 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 				req.Method,
 				req.URL.String(),
 			)
-
-			// Prevent automatic redirect.
-			//
-			// This is important because redirects can change
-			// how POST requests are handled.
 
 			return http.ErrUseLastResponse
 		},
@@ -575,9 +566,9 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 
 	defer resp.Body.Close()
 
-	// -------------------------
+	// -----------------------------------------------------
 	// READ CLOUDPAY RESPONSE
-	// -------------------------
+	// -----------------------------------------------------
 
 	responseBody, err := io.ReadAll(
 		resp.Body,
@@ -611,9 +602,9 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		string(responseBody),
 	)
 
-	// -------------------------
+	// -----------------------------------------------------
 	// PARSE RESPONSE
-	// -------------------------
+	// -----------------------------------------------------
 
 	var cloudPayResponse CloudPayResponse
 
@@ -627,28 +618,24 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 			err,
 		)
 
-		if resp.StatusCode >= 400 {
-			w.WriteHeader(resp.StatusCode)
+		w.WriteHeader(
+			http.StatusBadGateway,
+		)
 
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{
-				"success": false,
-				"message": "CloudPay payment request failed",
-			})
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"message": "CloudPay returned an invalid response",
+		})
 
-			return
-		}
+		return
 	}
 
-	// -------------------------
+	// -----------------------------------------------------
 	// CLOUDPAY ERROR
-	// -------------------------
+	// -----------------------------------------------------
 
 	if resp.StatusCode < 200 ||
 		resp.StatusCode >= 300 {
-
-		w.WriteHeader(
-			resp.StatusCode,
-		)
 
 		message :=
 			"CloudPay transaction initiation failed"
@@ -656,6 +643,10 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		if cloudPayResponse.Message != "" {
 			message = cloudPayResponse.Message
 		}
+
+		w.WriteHeader(
+			resp.StatusCode,
+		)
 
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
@@ -666,23 +657,25 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// -------------------------
+	// -----------------------------------------------------
 	// GET REFERENCE
-	// -------------------------
+	// -----------------------------------------------------
 
-	ref := cloudPayResponse.Ref
+	ref := strings.TrimSpace(
+		cloudPayResponse.Ref,
+	)
 
 	if ref == "" {
 		ref = reference
 	}
 
-	// -------------------------
+	// -----------------------------------------------------
 	// SAVE PENDING MEMBERSHIP
-	// -------------------------
+	// -----------------------------------------------------
 
 	if err := db.CreatePendingMembership(
 		user.ID,
-		paymentReq.Plan,
+		plan,
 		ref,
 	); err != nil {
 
@@ -691,15 +684,13 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 			err,
 		)
 
-		// Don't fail the payment response here.
-		//
-		// The STK request may already have been
-		// successfully accepted by CloudPay.
+		// The STK request may already have been accepted.
+		// The reference is still returned for investigation.
 	}
 
-	// -------------------------
+	// -----------------------------------------------------
 	// SUCCESS RESPONSE
-	// -------------------------
+	// -----------------------------------------------------
 
 	w.WriteHeader(
 		http.StatusOK,
@@ -707,15 +698,17 @@ func CloudPayPaymentHandler(w http.ResponseWriter, r *http.Request) {
 
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"success":   true,
-		"message":   "CloudPay M-Pesa prompt sent. Check your phone.",
+		"message":   "KES 99 M-Pesa payment prompt sent. Check your phone.",
 		"reference": ref,
 		"status":    cloudPayResponse.Status,
+		"amount":    MembershipAmount,
+		"plan":      MembershipPlan,
 	})
 }
 
-// -------------------------
+// ---------------------------------------------------------
 // CLOUDPAY WEBHOOK HANDLER
-// -------------------------
+// ---------------------------------------------------------
 
 func CloudPayWebhookHandler(
 	w http.ResponseWriter,
@@ -726,11 +719,12 @@ func CloudPayWebhookHandler(
 		"application/json",
 	)
 
-	// -------------------------
+	// -----------------------------------------------------
 	// METHOD CHECK
-	// -------------------------
+	// -----------------------------------------------------
 
 	if r.Method != http.MethodPost {
+
 		w.WriteHeader(
 			http.StatusMethodNotAllowed,
 		)
@@ -743,11 +737,13 @@ func CloudPayWebhookHandler(
 		return
 	}
 
-	// -------------------------
+	// -----------------------------------------------------
 	// READ WEBHOOK
-	// -------------------------
+	// -----------------------------------------------------
 
-	body, err := io.ReadAll(r.Body)
+	body, err := io.ReadAll(
+		r.Body,
+	)
 
 	if err != nil {
 		http.Error(
@@ -764,9 +760,9 @@ func CloudPayWebhookHandler(
 		string(body),
 	)
 
-	// -------------------------
+	// -----------------------------------------------------
 	// PARSE WEBHOOK
-	// -------------------------
+	// -----------------------------------------------------
 
 	var payload CloudPayWebhookPayload
 
@@ -784,11 +780,16 @@ func CloudPayWebhookHandler(
 		return
 	}
 
-	// -------------------------
+	// -----------------------------------------------------
 	// VALIDATE REFERENCE
-	// -------------------------
+	// -----------------------------------------------------
+
+	payload.Reference = strings.TrimSpace(
+		payload.Reference,
+	)
 
 	if payload.Reference == "" {
+
 		log.Println(
 			"CLOUDPAY WEBHOOK MISSING REFERENCE",
 		)
@@ -805,50 +806,133 @@ func CloudPayWebhookHandler(
 		return
 	}
 
-	// -------------------------
-	// PAYMENT SUCCESS
-	// -------------------------
+	// -----------------------------------------------------
+	// PAYMENT STATUS
+	// -----------------------------------------------------
 
 	status := strings.ToUpper(
-		strings.TrimSpace(payload.Status),
+		strings.TrimSpace(
+			payload.Status,
+		),
 	)
 
-	if status == "COMPLETED" ||
-		status == "SUCCESS" {
+	// -----------------------------------------------------
+	// ONLY PROCESS SUCCESSFUL PAYMENTS
+	// -----------------------------------------------------
 
-		log.Println(
-			"CLOUDPAY PAYMENT SUCCESSFUL FOR REF:",
+	if status != "COMPLETED" &&
+		status != "SUCCESS" {
+
+		log.Printf(
+			"CLOUDPAY PAYMENT NOT COMPLETED: ref=%s status=%s",
 			payload.Reference,
+			status,
 		)
 
-		if err := db.ActivateMembership(
-			payload.Reference,
-		); err != nil {
+		w.WriteHeader(
+			http.StatusOK,
+		)
 
-			log.Println(
-				"Failed to activate membership:",
-				err,
-			)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"message": "Webhook received",
+		})
 
-			// Return 500 so CloudPay knows our webhook
-			// processing failed.
-
-			w.WriteHeader(
-				http.StatusInternalServerError,
-			)
-
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{
-				"success": false,
-				"message": "Failed to process payment",
-			})
-
-			return
-		}
+		return
 	}
 
-	// -------------------------
+	// -----------------------------------------------------
+	// VALIDATE PAYMENT AMOUNT
+	// -----------------------------------------------------
+
+	if payload.Amount > 0 &&
+		payload.Amount != MembershipAmount {
+
+		log.Printf(
+			"CLOUDPAY INVALID AMOUNT: ref=%s amount=%d expected=%d",
+			payload.Reference,
+			payload.Amount,
+			MembershipAmount,
+		)
+
+		w.WriteHeader(
+			http.StatusBadRequest,
+		)
+
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"message": "Invalid membership payment amount",
+		})
+
+		return
+	}
+
+	// -----------------------------------------------------
+	// VALIDATE PLAN IF PROVIDED
+	// -----------------------------------------------------
+
+	if payload.Plan != "" &&
+		!strings.EqualFold(
+			strings.TrimSpace(payload.Plan),
+			MembershipPlan,
+		) {
+
+		log.Printf(
+			"CLOUDPAY INVALID PLAN: ref=%s plan=%s",
+			payload.Reference,
+			payload.Plan,
+		)
+
+		w.WriteHeader(
+			http.StatusBadRequest,
+		)
+
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"message": "Invalid membership plan",
+		})
+
+		return
+	}
+
+	// -----------------------------------------------------
+	// ACTIVATE PENDING MEMBERSHIP
+	// -----------------------------------------------------
+
+	log.Println(
+		"CLOUDPAY PAYMENT SUCCESSFUL FOR REF:",
+		payload.Reference,
+	)
+
+	if err := db.ActivateMembership(
+		payload.Reference,
+	); err != nil {
+
+		log.Println(
+			"Failed to activate membership:",
+			err,
+		)
+
+		w.WriteHeader(
+			http.StatusInternalServerError,
+		)
+
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"message": "Failed to process payment",
+		})
+
+		return
+	}
+
+	log.Println(
+		"MEMBERSHIP ACTIVATED:",
+		payload.Reference,
+	)
+
+	// -----------------------------------------------------
 	// WEBHOOK SUCCESS
-	// -------------------------
+	// -----------------------------------------------------
 
 	w.WriteHeader(
 		http.StatusOK,
@@ -856,6 +940,90 @@ func CloudPayWebhookHandler(
 
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
-		"message": "Webhook received",
+		"message": "Membership payment processed successfully",
+	})
+}
+
+// ---------------------------------------------------------
+// MEMBERSHIP STATUS HANDLER
+// ---------------------------------------------------------
+
+func MembershipStatusHandler(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	w.Header().Set(
+		"Content-Type",
+		"application/json",
+	)
+
+	// -----------------------------------------------------
+	// METHOD CHECK
+	// -----------------------------------------------------
+
+	if r.Method != http.MethodGet {
+
+		w.WriteHeader(
+			http.StatusMethodNotAllowed,
+		)
+
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"active":  false,
+			"message": "Method not allowed",
+		})
+
+		return
+	}
+
+	// -----------------------------------------------------
+	// SESSION CHECK
+	// -----------------------------------------------------
+
+	cookie, err := r.Cookie("gc_session")
+
+	if err != nil || cookie.Value == "" {
+
+		w.WriteHeader(
+			http.StatusUnauthorized,
+		)
+
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"active":  false,
+			"message": "Unauthorized",
+		})
+
+		return
+	}
+
+	user, err := db.GetSessionUser(
+		cookie.Value,
+	)
+
+	if err != nil || user == nil {
+
+		w.WriteHeader(
+			http.StatusUnauthorized,
+		)
+
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"active":  false,
+			"message": "Invalid session",
+		})
+
+		return
+	}
+
+	// -----------------------------------------------------
+	// CHECK MEMBERSHIP
+	// -----------------------------------------------------
+
+	active := db.HasActiveMembership(user.ID)
+
+	// -----------------------------------------------------
+	// RESPONSE
+	// -----------------------------------------------------
+
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"active": active,
 	})
 }

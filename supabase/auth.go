@@ -45,7 +45,6 @@ func authRequest(endpoint string, payload interface{}, key string) (*AuthRespons
 		url,
 		bytes.NewBuffer(body),
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -54,7 +53,6 @@ func authRequest(endpoint string, payload interface{}, key string) (*AuthRespons
 	req.Header.Set("apikey", key)
 
 	resp, err := http.DefaultClient.Do(req)
-
 	if err != nil {
 		return nil, fmt.Errorf("Supabase Auth connection failed: %w", err)
 	}
@@ -80,9 +78,11 @@ func authRequest(endpoint string, payload interface{}, key string) (*AuthRespons
 	}
 
 	raw, err := json.Marshal(responseBody)
-
 	if err != nil {
-		return nil, fmt.Errorf("failed to process Supabase response: %w", err)
+		return nil, fmt.Errorf(
+			"failed to process Supabase response: %w",
+			err,
+		)
 	}
 
 	var result AuthResponse
@@ -91,6 +91,31 @@ func authRequest(endpoint string, payload interface{}, key string) (*AuthRespons
 		return nil, fmt.Errorf(
 			"failed to decode Supabase Auth response: %w",
 			err,
+		)
+	}
+
+	// Supabase may return a successful signup without an access token
+	// when email confirmation is enabled. In that case, the user object
+	// should still contain the Auth user ID.
+	if result.User.ID == "" {
+		if rawUser, ok := responseBody["user"].(map[string]interface{}); ok {
+			if id, ok := rawUser["id"].(string); ok {
+				result.User.ID = id
+			}
+
+			if email, ok := rawUser["email"].(string); ok {
+				result.User.Email = email
+			}
+
+			if metadata, ok := rawUser["user_metadata"].(map[string]interface{}); ok {
+				result.User.UserMetadata = metadata
+			}
+		}
+	}
+
+	if result.User.ID == "" {
+		return nil, fmt.Errorf(
+			"Supabase signup succeeded but returned no user ID",
 		)
 	}
 

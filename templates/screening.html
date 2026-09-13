@@ -3,18 +3,28 @@
 
 <section class="screening-section">
   <div class="section-container">
+
     <div class="screening-header reveal">
-      <h2>Earn Rewards — Answer Questions</h2>
-      <p>Complete the screening below. Reward amount shown upfront. No hidden deductions.</p>
-      <div class="reward-badge">💰 This task pays: <strong>KES 750</strong></div>
+      <h2>Complete Your Screening</h2>
+      <p>
+        Answer the questions below to complete your GlobalChat registration.
+      </p>
+
+      <div class="reward-badge">
+        🎯 Complete all questions to continue
+      </div>
     </div>
 
     <!-- Progress -->
     <div class="progress-bar-wrap reveal">
       <div class="progress-labels">
-        <span>Question <span id="currentQ">1</span> of 5</span>
+        <span>
+          Question <span id="currentQ">1</span> of 5
+        </span>
+
         <span id="progressPct">20%</span>
       </div>
+
       <div class="progress-track">
         <div class="progress-fill" id="progressFill" style="width:20%"></div>
       </div>
@@ -22,9 +32,12 @@
 
     <!-- Question Cards -->
     <div class="question-cards">
+
       <div class="q-card glass reveal active" data-q="1">
         <span class="q-num">01</span>
+
         <h3>What is your age group?</h3>
+
         <div class="q-options">
           <button class="q-opt" onclick="selectOpt(this)">18 – 24</button>
           <button class="q-opt" onclick="selectOpt(this)">25 – 34</button>
@@ -32,9 +45,12 @@
           <button class="q-opt" onclick="selectOpt(this)">45+</button>
         </div>
       </div>
+
       <div class="q-card glass reveal hidden" data-q="2">
         <span class="q-num">02</span>
+
         <h3>How often do you shop online?</h3>
+
         <div class="q-options">
           <button class="q-opt" onclick="selectOpt(this)">Daily</button>
           <button class="q-opt" onclick="selectOpt(this)">Weekly</button>
@@ -42,9 +58,12 @@
           <button class="q-opt" onclick="selectOpt(this)">Rarely</button>
         </div>
       </div>
+
       <div class="q-card glass reveal hidden" data-q="3">
         <span class="q-num">03</span>
+
         <h3>Which devices do you use most?</h3>
+
         <div class="q-options">
           <button class="q-opt" onclick="selectOpt(this)">Smartphone</button>
           <button class="q-opt" onclick="selectOpt(this)">Laptop</button>
@@ -52,9 +71,12 @@
           <button class="q-opt" onclick="selectOpt(this)">Desktop</button>
         </div>
       </div>
+
       <div class="q-card glass reveal hidden" data-q="4">
         <span class="q-num">04</span>
+
         <h3>What is your primary income source?</h3>
+
         <div class="q-options">
           <button class="q-opt" onclick="selectOpt(this)">Employment</button>
           <button class="q-opt" onclick="selectOpt(this)">Business</button>
@@ -62,9 +84,12 @@
           <button class="q-opt" onclick="selectOpt(this)">Student</button>
         </div>
       </div>
+
       <div class="q-card glass reveal hidden" data-q="5">
         <span class="q-num">05</span>
+
         <h3>How did you hear about GlobalChat?</h3>
+
         <div class="q-options">
           <button class="q-opt" onclick="selectOpt(this)">Social Media</button>
           <button class="q-opt" onclick="selectOpt(this)">Friend Referral</button>
@@ -72,22 +97,216 @@
           <button class="q-opt" onclick="selectOpt(this)">Advertisement</button>
         </div>
       </div>
+
     </div>
 
-    <div class="q-nav reveal">
-      <button class="btn-outline" id="prevBtn" onclick="prevQ()" disabled>← Previous</button>
-      <button class="btn-primary" id="nextBtn" onclick="nextQ()">Next →</button>
+    <!-- Question Navigation -->
+    <div class="q-nav reveal" id="questionNav">
+
+      <button class="btn-outline" id="prevBtn" onclick="prevQ()" disabled>
+        ← Previous
+      </button>
+
+      <button class="btn-primary" id="nextBtn" onclick="nextQ()">
+        Next →
+      </button>
+
     </div>
 
     <!-- Completion -->
     <div class="completion-card glass reveal hidden" id="completionCard">
       <div class="completion-anim">🎉</div>
-      <h2>Survey Complete!</h2>
-      <p>Your reward has been added to your wallet.</p>
-      <div class="reward-credited">+ KES 750 credited</div>
-      <button class="btn-primary btn-lg" onclick="location.href='/dashboard'">Go to Dashboard →</button>
+
+      <h2>Screening Complete!</h2>
+
+      <p>
+        Your screening is complete. Continue to membership activation
+        to unlock your GlobalChat dashboard.
+      </p>
+
+      <div class="membership-required">
+        <strong>Membership Required</strong>
+        <span>KES 99 / month</span>
+      </div>
+
+      <button class="btn-primary btn-lg" onclick="location.href='/membership'">
+        Continue to Membership →
+      </button>
+
     </div>
+
   </div>
 </section>
+
+<script>
+  let currentQuestion = 1;
+  const totalQuestions = 5;
+
+  const answers = {};
+
+  function selectOpt(button) {
+    const card = button.closest(".q-card");
+
+    if (!card) {
+      return;
+    }
+
+    const questionNumber = Number(card.dataset.q);
+
+    card.querySelectorAll(".q-opt").forEach(option => {
+      option.classList.remove("selected");
+    });
+
+    button.classList.add("selected");
+
+    answers[questionNumber] = button.textContent.trim();
+  }
+
+  function updateProgress() {
+    const percentage =
+      Math.round((currentQuestion / totalQuestions) * 100);
+
+    document.getElementById("currentQ").textContent =
+      currentQuestion;
+
+    document.getElementById("progressPct").textContent =
+      percentage + "%";
+
+    document.getElementById("progressFill").style.width =
+      percentage + "%";
+  }
+
+  function showQuestion(questionNumber) {
+    document.querySelectorAll(".q-card").forEach(card => {
+      card.classList.add("hidden");
+      card.classList.remove("active");
+    });
+
+    const question = document.querySelector(
+      `.q-card[data-q="${questionNumber}"]`
+    );
+
+    if (question) {
+      question.classList.remove("hidden");
+      question.classList.add("active");
+
+      if (answers[questionNumber]) {
+        question.querySelectorAll(".q-opt").forEach(option => {
+          option.classList.toggle(
+            "selected",
+            option.textContent.trim() === answers[questionNumber]
+          );
+        });
+      }
+    }
+
+    document.getElementById("prevBtn").disabled =
+      questionNumber === 1;
+
+    document.getElementById("nextBtn").textContent =
+      questionNumber === totalQuestions
+        ? "Finish Screening →"
+        : "Next →";
+
+    updateProgress();
+  }
+
+  function nextQ() {
+    // Make sure current question has an answer.
+    if (!answers[currentQuestion]) {
+      const currentCard = document.querySelector(
+        `.q-card[data-q="${currentQuestion}"]`
+      );
+
+      if (currentCard) {
+        currentCard.classList.add("selection-required");
+
+        setTimeout(() => {
+          currentCard.classList.remove("selection-required");
+        }, 700);
+      }
+
+      return;
+    }
+
+    if (currentQuestion < totalQuestions) {
+      currentQuestion++;
+      showQuestion(currentQuestion);
+      return;
+    }
+
+    // Screening completed.
+    document.querySelectorAll(".q-card").forEach(card => {
+      card.classList.add("hidden");
+    });
+
+    document.getElementById("questionNav").classList.add("hidden");
+    document.getElementById("completionCard").classList.remove("hidden");
+
+    updateProgress();
+  }
+
+  function prevQ() {
+    if (currentQuestion <= 1) {
+      return;
+    }
+
+    currentQuestion--;
+    showQuestion(currentQuestion);
+  }
+
+  updateProgress();
+</script>
+
+<style>
+  .selection-required {
+    animation: selectionShake 0.35s ease;
+  }
+
+  .q-opt.selected {
+    border-color: #00b894;
+    background: rgba(0, 184, 148, 0.15);
+    transform: translateY(-1px);
+  }
+
+  .membership-required {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin: 20px auto;
+    padding: 16px 24px;
+    border-radius: 14px;
+    background: rgba(0, 184, 148, 0.08);
+    border: 1px solid rgba(0, 184, 148, 0.25);
+    max-width: 280px;
+  }
+
+  .membership-required strong {
+    font-size: 15px;
+  }
+
+  .membership-required span {
+    color: #00b894;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  @keyframes selectionShake {
+
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+
+    25% {
+      transform: translateX(-5px);
+    }
+
+    75% {
+      transform: translateX(5px);
+    }
+  }
+</style>
 
 {{template "footer" .}}
